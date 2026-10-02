@@ -1,0 +1,426 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ==============================================================================
+// ENUMS
+// ==============================================================================
+
+/// CRM 12 Business Personas mapped to stable machine-readable enum values
+enum Role {
+  BUSINESS_OWNER            // Business Owner / Executive
+  CUSTOMER                  // Client & Customer Portal
+  CONTENT_CREATOR           // AI Media & Video Creator / Content Creator
+  CONTENT_BUILDER           // Campaign & Content Builder
+  INFLUENCER                // Brand Ambassador & Influencer
+  AFFILIATE_PARTNER         // Affiliate Deal Partner
+  AI_MARKETING_PRO          // AI Marketing Specialist / Professional
+  HR                        // Human Resources Director
+  OPERATIONS_SALES_ADMIN    // Operations & Sales Administrator (Admin I)
+  FINANCE_COMPLIANCE_ADMIN  // Finance & Compliance Administrator (Admin II)
+  CRM_PRO                   // CRM & Pipeline Specialist
+  SUPER_ADMIN               // Master Super Administrator
+}
+
+/// 8 Sales Pipeline Stages verified from CRM implementation
+enum DealStage {
+  NEW_LEAD      // New Lead
+  CONTACTED     // Contacted
+  QUALIFIED     // Qualified
+  OPPORTUNITY   // Opportunity
+  PROPOSAL      // Proposal
+  NEGOTIATION   // Negotiation
+  WON           // Won
+  LOST          // Lost
+}
+
+/// Commercial Lead Statuses
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  WON
+  LOST
+}
+
+/// Task Execution Priorities
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+/// Task Lifecycle Statuses
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+/// Activity Stream & Timeline Event Types
+enum ActivityType {
+  NOTE_ADDED
+  CALL_LOGGED
+  EMAIL_SENT
+  MEETING_HELD
+  STAGE_CHANGED
+  STATUS_CHANGED
+  LEAD_CONVERTED
+  TASK_CREATED
+  TASK_COMPLETED
+}
+
+// ==============================================================================
+// CORE ENTITIES
+// ==============================================================================
+
+/// Multi-Tenant Company Organization
+model Tenant {
+  id           String     @id @default(cuid())
+  name         String
+  domain       String?
+  subscription String?    @default("ACTIVE")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  // Tenant Owned Resources
+  users          User[]
+  leads          Lead[]
+  contacts       Contact[]
+  deals          Deal[]
+  tasks          Task[]
+  notes          Note[]
+  activities     Activity[]
+  erpProjects    ErpProject[]
+  salesOrders    SalesOrder[]
+  purchaseOrders PurchaseOrder[]
+  inventoryItems InventoryItem[]
+
+  @@map("tenants")
+}
+
+/// System User with Role-Based Access Control
+model User {
+  id           String     @id @default(cuid())
+  tenantId     String
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name         String
+  email        String
+  passwordHash String
+  role         Role       @default(CRM_PRO)
+  isActive     Boolean    @default(true)
+  avatar       String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  // Assigned CRM & ERP Entities
+  assignedLeads    Lead[]       @relation("AssignedLeads")
+  assignedContacts Contact[]    @relation("AssignedContacts")
+  assignedDeals    Deal[]       @relation("AssignedDeals")
+  assignedTasks    Task[]       @relation("AssignedTasks")
+  assignedProjects ErpProject[] @relation("AssignedProjects")
+  createdNotes     Note[]       @relation("CreatedNotes")
+  loggedActivities Activity[]   @relation("UserActivities")
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([email])
+  @@map("users")
+}
+
+/// Prospective Customer / Commercial Sales Lead
+model Lead {
+  id                   String     @id @default(cuid())
+  tenantId             String
+  tenant               Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedUserId       String?
+  assignedUser         User?      @relation("AssignedLeads", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  name                 String
+  company              String
+  email                String?
+  phone                String?
+  source               String?
+  territory            String?
+  status               LeadStatus @default(NEW)
+  qualification        String?
+  score                Int        @default(75)
+  estimatedValue       Decimal?   @db.Decimal(12, 2)
+  convertedToContactId String?    @unique
+  convertedContact     Contact?   @relation("LeadConversion", fields: [convertedToContactId], references: [id], onDelete: SetNull)
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  // Relations
+  deals                Deal[]
+  tasks                Task[]
+  notes                Note[]
+  activities           Activity[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([assignedUserId])
+  @@index([createdAt])
+  @@map("leads")
+}
+
+/// Address Book Contact / Account
+model Contact {
+  id             String     @id @default(cuid())
+  tenantId       String
+  tenant         Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedUserId String?
+  assignedUser   User?      @relation("AssignedContacts", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  sourceLead     Lead?      @relation("LeadConversion")
+  name           String
+  company        String?
+  email          String?
+  phone          String?
+  type           String?    @default("Enterprise Client")
+  title          String?
+  status         String?    @default("Active")
+  lastActivity   DateTime?
+  totalValue     Decimal?   @db.Decimal(12, 2)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  // Relations
+  deals          Deal[]
+  tasks          Task[]
+  notes          Note[]
+  activities     Activity[]
+  erpProjects    ErpProject[]
+  salesOrders    SalesOrder[]
+
+  @@index([tenantId])
+  @@index([tenantId, email])
+  @@index([assignedUserId])
+  @@map("contacts")
+}
+
+/// Sales Pipeline Deal / Opportunity
+model Deal {
+  id             String      @id @default(cuid())
+  tenantId       String
+  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contactId      String?
+  contact        Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  leadId         String?
+  lead           Lead?       @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  assignedUserId String?
+  assignedUser   User?       @relation("AssignedDeals", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  title          String
+  customer       String?
+  value          Decimal     @default(0.00) @db.Decimal(12, 2)
+  stage          DealStage   @default(NEW_LEAD)
+  probability    Int         @default(50)
+  expectedClose  DateTime?
+  description    String?     @db.Text
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Relations
+  tasks          Task[]
+  notes          Note[]
+  activities     Activity[]
+  erpProject     ErpProject?
+  salesOrders    SalesOrder[]
+
+  @@index([tenantId])
+  @@index([tenantId, stage])
+  @@index([contactId])
+  @@index([leadId])
+  @@index([assignedUserId])
+  @@map("deals")
+}
+
+/// Scheduled Task and Follow-up Reminder
+model Task {
+  id             String     @id @default(cuid())
+  tenantId       String
+  tenant         Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedUserId String?
+  assignedUser   User?      @relation("AssignedTasks", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  leadId         String?
+  lead           Lead?      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  contactId      String?
+  contact        Contact?   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  dealId         String?
+  deal           Deal?      @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?    @db.Text
+  priority       Priority   @default(MEDIUM)
+  status         TaskStatus @default(PENDING)
+  dueDate        DateTime?
+  reminder       String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([assignedUserId])
+  @@index([dueDate])
+  @@map("tasks")
+}
+
+/// Contextual Note attached to Lead, Contact, or Deal
+model Note {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation("CreatedNotes", fields: [authorId], references: [id], onDelete: SetNull)
+  leadId    String?
+  lead      Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  dealId    String?
+  deal      Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([leadId])
+  @@index([contactId])
+  @@index([dealId])
+  @@index([authorId])
+  @@map("notes")
+}
+
+/// Audit Log & Timeline Activity Stream
+model Activity {
+  id          String       @id @default(cuid())
+  tenantId    String
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?        @relation("UserActivities", fields: [userId], references: [id], onDelete: SetNull)
+  leadId      String?
+  lead        Lead?        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  contactId   String?
+  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  dealId      String?
+  deal        Deal?        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  type        ActivityType
+  title       String
+  description String?      @db.Text
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+  @@index([leadId])
+  @@index([contactId])
+  @@index([dealId])
+  @@index([userId])
+  @@map("activities")
+}
+
+// ==============================================================================
+// ERP & OPERATIONS ENTITIES
+// ==============================================================================
+
+/// ERP Project Delivery Record
+model ErpProject {
+  id             String       @id @default(cuid())
+  tenantId       String
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dealId         String?      @unique
+  deal           Deal?        @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  contactId      String?
+  contact        Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  assignedUserId String?
+  assignedUser   User?        @relation("AssignedProjects", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  name           String
+  client         String
+  budget         Decimal      @default(0.00) @db.Decimal(12, 2)
+  spent          Decimal      @default(0.00) @db.Decimal(12, 2)
+  progress       Int          @default(0)
+  status         String       @default("In Progress")
+  manager        String?
+  deadline       DateTime?
+  salesOrders    SalesOrder[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([tenantId])
+  @@index([contactId])
+  @@index([dealId])
+  @@map("erp_projects")
+}
+
+/// ERP Sales & Fulfillment Order
+model SalesOrder {
+  id          String      @id @default(cuid())
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dealId      String?
+  deal        Deal?       @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  contactId   String?
+  contact     Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  projectId   String?
+  project     ErpProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  orderNumber String?
+  customer    String
+  items       String      @db.Text
+  total       Decimal     @default(0.00) @db.Decimal(12, 2)
+  status      String      @default("Processing")
+  date        DateTime    @default(now())
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([tenantId])
+  @@index([dealId])
+  @@index([projectId])
+  @@index([contactId])
+  @@map("sales_orders")
+}
+
+/// ERP Procurement Purchase Order
+model PurchaseOrder {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  poNumber  String?
+  vendor    String
+  items     String   @db.Text
+  amount    Decimal  @default(0.00) @db.Decimal(12, 2)
+  status    String   @default("Pending Approval")
+  eta       String?
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("purchase_orders")
+}
+
+/// ERP Inventory & Warehouse SKU Stock Item
+model InventoryItem {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sku          String
+  name         String
+  category     String   @default("Hardware")
+  warehouse    String   @default("Austin Central")
+  quantity     Int      @default(0)
+  minThreshold Int      @default(50)
+  unitCost     Decimal  @default(0.00) @db.Decimal(12, 2)
+  status       String   @default("Optimal")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("inventory_items")
+}
