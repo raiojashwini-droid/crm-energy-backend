@@ -12,6 +12,14 @@ const noteRoutes = require('./routes/noteRoutes');
 const activityRoutes = require('./routes/activityRoutes');
 const userRoutes = require('./routes/userRoutes');
 const erpRoutes = require('./routes/erpRoutes');
+const invoiceRoutes = require('./routes/invoiceRoutes');
+const communicationRoutes = require('./routes/communicationRoutes');
+const territoryRoutes = require('./routes/territoryRoutes');
+const hrRoutes = require('./routes/hrRoutes');
+const supportRoutes = require('./routes/supportRoutes');
+const tenantRoutes = require('./routes/tenantRoutes');
+const manufacturingRoutes = require('./routes/manufacturingRoutes');
+const eboxRoutes = require('./routes/eboxRoutes');
 
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
@@ -70,6 +78,14 @@ app.use('/api/notes', noteRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/erp', erpRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/communications', communicationRoutes);
+app.use('/api/territories', territoryRoutes);
+app.use('/api/hr', hrRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/tenants', tenantRoutes);
+app.use('/api/manufacturing', manufacturingRoutes);
+app.use('/api/ebox', eboxRoutes);
 
 // 404 Handler for unknown routes
 app.use(notFoundHandler);

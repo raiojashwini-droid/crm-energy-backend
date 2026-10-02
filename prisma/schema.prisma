@@ -91,21 +91,36 @@ model Tenant {
   name         String
   domain       String?
   subscription String?    @default("ACTIVE")
+  status       String?    @default("ACTIVE")
+  parentId     String?
+  parent       Tenant?    @relation("SubTenants", fields: [parentId], references: [id], onDelete: SetNull)
+  subTenants   Tenant[]   @relation("SubTenants")
+  settings     Json?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
   // Tenant Owned Resources
-  users          User[]
-  leads          Lead[]
-  contacts       Contact[]
-  deals          Deal[]
-  tasks          Task[]
-  notes          Note[]
-  activities     Activity[]
-  erpProjects    ErpProject[]
-  salesOrders    SalesOrder[]
-  purchaseOrders PurchaseOrder[]
-  inventoryItems InventoryItem[]
+  users             User[]
+  leads             Lead[]
+  contacts          Contact[]
+  deals             Deal[]
+  tasks             Task[]
+  notes             Note[]
+  activities        Activity[]
+  erpProjects       ErpProject[]
+  salesOrders       SalesOrder[]
+  purchaseOrders    PurchaseOrder[]
+  inventoryItems    InventoryItem[]
+  invoices          Invoice[]
+  communications    Communication[]
+  territories       Territory[]
+  hrEmployees       HrEmployee[]
+  hrCandidates      HrCandidate[]
+  supportTickets    SupportTicket[]
+  knowledgeArticles KnowledgeArticle[]
+  ledgerAccounts    LedgerAccount[]
+  productionOrders  ProductionOrder[]
+  eboxMessages      EboxMessage[]
 
   @@map("tenants")
 }
@@ -125,13 +140,16 @@ model User {
   updatedAt    DateTime   @updatedAt
 
   // Assigned CRM & ERP Entities
-  assignedLeads    Lead[]       @relation("AssignedLeads")
-  assignedContacts Contact[]    @relation("AssignedContacts")
-  assignedDeals    Deal[]       @relation("AssignedDeals")
-  assignedTasks    Task[]       @relation("AssignedTasks")
-  assignedProjects ErpProject[] @relation("AssignedProjects")
-  createdNotes     Note[]       @relation("CreatedNotes")
-  loggedActivities Activity[]   @relation("UserActivities")
+  assignedLeads          Lead[]          @relation("AssignedLeads")
+  assignedContacts       Contact[]       @relation("AssignedContacts")
+  assignedDeals          Deal[]          @relation("AssignedDeals")
+  assignedTasks          Task[]          @relation("AssignedTasks")
+  assignedProjects       ErpProject[]    @relation("AssignedProjects")
+  createdNotes           Note[]          @relation("CreatedNotes")
+  loggedActivities       Activity[]      @relation("UserActivities")
+  sentCommunications     Communication[] @relation("UserCommunications")
+  assignedSupportTickets SupportTicket[] @relation("AssignedSupportTickets")
+  managedTerritories     Territory[]     @relation("ManagedTerritories")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -141,31 +159,32 @@ model User {
 
 /// Prospective Customer / Commercial Sales Lead
 model Lead {
-  id                   String     @id @default(cuid())
+  id                   String          @id @default(cuid())
   tenantId             String
-  tenant               Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant               Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   assignedUserId       String?
-  assignedUser         User?      @relation("AssignedLeads", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  assignedUser         User?           @relation("AssignedLeads", fields: [assignedUserId], references: [id], onDelete: SetNull)
   name                 String
   company              String
   email                String?
   phone                String?
   source               String?
   territory            String?
-  status               LeadStatus @default(NEW)
+  status               LeadStatus      @default(NEW)
   qualification        String?
-  score                Int        @default(75)
-  estimatedValue       Decimal?   @db.Decimal(12, 2)
-  convertedToContactId String?    @unique
-  convertedContact     Contact?   @relation("LeadConversion", fields: [convertedToContactId], references: [id], onDelete: SetNull)
-  createdAt            DateTime   @default(now())
-  updatedAt            DateTime   @updatedAt
+  score                Int             @default(75)
+  estimatedValue       Decimal?        @db.Decimal(12, 2)
+  convertedToContactId String?         @unique
+  convertedContact     Contact?        @relation("LeadConversion", fields: [convertedToContactId], references: [id], onDelete: SetNull)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
   // Relations
   deals                Deal[]
   tasks                Task[]
   notes                Note[]
   activities           Activity[]
+  communications       Communication[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -176,23 +195,23 @@ model Lead {
 
 /// Address Book Contact / Account
 model Contact {
-  id             String     @id @default(cuid())
+  id             String          @id @default(cuid())
   tenantId       String
-  tenant         Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   assignedUserId String?
-  assignedUser   User?      @relation("AssignedContacts", fields: [assignedUserId], references: [id], onDelete: SetNull)
-  sourceLead     Lead?      @relation("LeadConversion")
+  assignedUser   User?           @relation("AssignedContacts", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  sourceLead     Lead?           @relation("LeadConversion")
   name           String
   company        String?
   email          String?
   phone          String?
-  type           String?    @default("Enterprise Client")
+  type           String?         @default("Enterprise Client")
   title          String?
-  status         String?    @default("Active")
+  status         String?         @default("Active")
   lastActivity   DateTime?
-  totalValue     Decimal?   @db.Decimal(12, 2)
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  totalValue     Decimal?        @db.Decimal(12, 2)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   // Relations
   deals          Deal[]
@@ -201,6 +220,9 @@ model Contact {
   activities     Activity[]
   erpProjects    ErpProject[]
   salesOrders    SalesOrder[]
+  invoices       Invoice[]
+  communications Communication[]
+  supportTickets SupportTicket[]
 
   @@index([tenantId])
   @@index([tenantId, email])
@@ -210,24 +232,24 @@ model Contact {
 
 /// Sales Pipeline Deal / Opportunity
 model Deal {
-  id             String      @id @default(cuid())
+  id             String       @id @default(cuid())
   tenantId       String
-  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   contactId      String?
-  contact        Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  contact        Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
   leadId         String?
-  lead           Lead?       @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  lead           Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
   assignedUserId String?
-  assignedUser   User?       @relation("AssignedDeals", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  assignedUser   User?        @relation("AssignedDeals", fields: [assignedUserId], references: [id], onDelete: SetNull)
   title          String
   customer       String?
-  value          Decimal     @default(0.00) @db.Decimal(12, 2)
-  stage          DealStage   @default(NEW_LEAD)
-  probability    Int         @default(50)
+  value          Decimal      @default(0.00) @db.Decimal(12, 2)
+  stage          DealStage    @default(NEW_LEAD)
+  probability    Int          @default(50)
   expectedClose  DateTime?
-  description    String?     @db.Text
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  description    String?      @db.Text
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   // Relations
   tasks          Task[]
@@ -235,6 +257,7 @@ model Deal {
   activities     Activity[]
   erpProject     ErpProject?
   salesOrders    SalesOrder[]
+  invoices       Invoice[]
 
   @@index([tenantId])
   @@index([tenantId, stage])
@@ -350,6 +373,7 @@ model ErpProject {
   manager        String?
   deadline       DateTime?
   salesOrders    SalesOrder[]
+  invoices       Invoice[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -423,4 +447,257 @@ model InventoryItem {
 
   @@index([tenantId])
   @@map("inventory_items")
+}
+
+// ==============================================================================
+// BILLING & INVOICING
+// ==============================================================================
+
+/// Commercial Invoice
+model Invoice {
+  id            String      @id @default(cuid())
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoiceNumber String
+  customerId    String?
+  customer      Contact?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerName  String
+  customerEmail String?
+  dealId        String?
+  deal          Deal?       @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  projectId     String?
+  project       ErpProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  amount        Decimal     @default(0.00) @db.Decimal(12, 2)
+  subtotal      Decimal     @default(0.00) @db.Decimal(12, 2)
+  tax           Decimal     @default(0.00) @db.Decimal(12, 2)
+  discount      Decimal     @default(0.00) @db.Decimal(12, 2)
+  status        String      @default("Sent")
+  dueDate       DateTime?
+  issueDate     DateTime    @default(now())
+  items         Json?
+  notes         String?     @db.Text
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([dealId])
+  @@index([projectId])
+  @@map("invoices")
+}
+
+// ==============================================================================
+// COMMUNICATION SYSTEM (EMAIL & SMS)
+// ==============================================================================
+
+/// Multi-Channel Communication Record
+model Communication {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?    @relation("UserCommunications", fields: [userId], references: [id], onDelete: SetNull)
+  contactId    String?
+  contact      Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  leadId       String?
+  lead         Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  channel      String   @default("EMAIL")
+  direction    String   @default("OUTBOUND")
+  sender       String
+  recipient    String
+  subject      String?
+  body         String   @db.Text
+  status       String   @default("SENT")
+  provider     String?  @default("INTERNAL")
+  errorDetails String?
+  attachments  Json?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([contactId])
+  @@index([leadId])
+  @@index([userId])
+  @@map("communications")
+}
+
+// ==============================================================================
+// TERRITORY MANAGEMENT
+// ==============================================================================
+
+/// Sales Geographic Territory
+model Territory {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  code        String
+  name        String
+  region      String
+  states      String?
+  managerId   String?
+  manager     User?    @relation("ManagedTerritories", fields: [managerId], references: [id], onDelete: SetNull)
+  targetQuota Decimal  @default(0.00) @db.Decimal(12, 2)
+  status      String   @default("Active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([managerId])
+  @@map("territories")
+}
+
+// ==============================================================================
+// HUMAN RESOURCES (HR) MODULE
+// ==============================================================================
+
+/// HR Employee Directory Record
+model HrEmployee {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employeeId    String
+  name          String
+  email         String
+  phone         String?
+  department    String
+  designation   String
+  salary        Decimal  @default(0.00) @db.Decimal(12, 2)
+  joiningDate   DateTime @default(now())
+  status        String   @default("Active")
+  payrollStatus String   @default("Processed")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("hr_employees")
+}
+
+/// HR Recruiting Candidate Record
+model HrCandidate {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  email       String
+  phone       String?
+  role        String
+  stage       String   @default("Applied")
+  score       Int      @default(85)
+  experience  String?
+  resumeUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("hr_candidates")
+}
+
+// ==============================================================================
+// CUSTOMER SUPPORT & KNOWLEDGE BASE
+// ==============================================================================
+
+/// Support Ticket Record
+model SupportTicket {
+  id             String   @id @default(cuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticketNumber   String
+  title          String
+  description    String   @db.Text
+  category       String   @default("Technical")
+  priority       String   @default("Medium")
+  status         String   @default("Open")
+  assignedUserId String?
+  assignedUser   User?    @relation("AssignedSupportTickets", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  contactId      String?
+  contact        Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  slaHours       Int      @default(24)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([assignedUserId])
+  @@index([contactId])
+  @@map("support_tickets")
+}
+
+/// Knowledge Base Article
+model KnowledgeArticle {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title       String
+  category    String
+  content     String   @db.Text
+  views       Int      @default(0)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("knowledge_articles")
+}
+
+// ==============================================================================
+// ERP FINANCE & GENERAL LEDGER
+// ==============================================================================
+
+/// General Ledger Account Record
+model LedgerAccount {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  code        String
+  accountName String
+  type        String
+  balance     Decimal  @default(0.00) @db.Decimal(12, 2)
+  status      String   @default("Reconciled")
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("ledger_accounts")
+}
+
+// ==============================================================================
+// ERP MANUFACTURING
+// ==============================================================================
+
+/// Manufacturing Production Order
+model ProductionOrder {
+  id             String    @id @default(cuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orderNumber    String
+  productName    String
+  quantity       Int       @default(1)
+  bomCode        String?
+  status         String    @default("Scheduled")
+  startDate      DateTime?
+  completionDate DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@map("production_orders")
+}
+
+// ==============================================================================
+// SECURED EBOX ADMINISTRATIVE SYSTEM
+// ==============================================================================
+
+/// Encrypted Administrative eBox Message
+model EboxMessage {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  senderId    String
+  senderName  String
+  recipient   String   @default("Kiaan Tech Team")
+  subject     String
+  message     String   @db.Text
+  priority    String   @default("Normal")
+  isEncrypted Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@map("ebox_messages")
 }
