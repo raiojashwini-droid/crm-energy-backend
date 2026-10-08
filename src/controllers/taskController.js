@@ -3,7 +3,7 @@ const taskService = require('../services/taskService');
 class TaskController {
   async getAll(req, res, next) {
     try {
-      const tasks = await taskService.getAll(req.user.tenantId, req.query);
+      const tasks = await taskService.getAll(req.user.tenantId, req.query, req.user);
       return res.status(200).json({
         success: true,
         count: tasks.length,
@@ -16,7 +16,7 @@ class TaskController {
 
   async getById(req, res, next) {
     try {
-      const task = await taskService.getById(req.user.tenantId, req.params.id);
+      const task = await taskService.getById(req.user.tenantId, req.params.id, req.user);
       return res.status(200).json({
         success: true,
         data: task,
@@ -41,7 +41,7 @@ class TaskController {
 
   async update(req, res, next) {
     try {
-      const task = await taskService.update(req.user.tenantId, req.params.id, req.body);
+      const task = await taskService.update(req.user.tenantId, req.params.id, req.body, req.user);
       return res.status(200).json({
         success: true,
         message: 'Task updated successfully.',
@@ -54,7 +54,7 @@ class TaskController {
 
   async toggleComplete(req, res, next) {
     try {
-      const task = await taskService.toggleComplete(req.user.tenantId, req.params.id);
+      const task = await taskService.toggleComplete(req.user.tenantId, req.params.id, req.user);
       return res.status(200).json({
         success: true,
         message: 'Task status updated.',
@@ -67,7 +67,7 @@ class TaskController {
 
   async delete(req, res, next) {
     try {
-      await taskService.delete(req.user.tenantId, req.params.id);
+      await taskService.delete(req.user.tenantId, req.params.id, req.user);
       return res.status(200).json({
         success: true,
         message: 'Task deleted successfully.',

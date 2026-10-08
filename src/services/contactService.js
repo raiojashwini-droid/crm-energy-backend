@@ -1,9 +1,34 @@
 const prisma = require('../config/prisma');
 
 class ContactService {
-  async getAll(tenantId, query = {}) {
+  async getAll(tenantId, query = {}, user = null) {
     const { search, status, type, assignedUserId } = query;
     const where = { tenantId };
+
+    // Scope for CUSTOMER role: only contacts related to this customer account
+    if (user && user.role === 'CUSTOMER') {
+      const customerEmail = user.email ? String(user.email).trim().toLowerCase() : null;
+      if (customerEmail && user.userId) {
+        where.OR = [
+          { email: customerEmail },
+          { assignedUserId: user.userId },
+        ];
+      } else if (customerEmail) {
+        where.email = customerEmail;
+      } else if (user.userId) {
+        where.assignedUserId = user.userId;
+      } else {
+        where.id = '__no_access__';
+      }
+    } else {
+      if (search) {
+        where.OR = [
+          { name: { contains: search } },
+          { company: { contains: search } },
+          { email: { contains: search } },
+        ];
+      }
+    }
 
     if (status && status !== 'all') {
       where.status = status;
@@ -17,14 +42,6 @@ class ContactService {
       where.assignedUserId = assignedUserId;
     }
 
-    if (search) {
-      where.OR = [
-        { name: { contains: search } },
-        { company: { contains: search } },
-        { email: { contains: search } },
-      ];
-    }
-
     return await prisma.contact.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -35,7 +52,7 @@ class ContactService {
     });
   }
 
-  async getById(tenantId, id) {
+  async getById(tenantId, id, user = null) {
     const contact = await prisma.contact.findFirst({
       where: { id, tenantId },
       include: {
@@ -51,6 +68,22 @@ class ContactService {
       const err = new Error('Contact not found or access denied.');
       err.statusCode = 404;
       throw err;
+    }
+
+    // Customer scoping check: prevent null === null from granting ownership
+    if (user && user.role === 'CUSTOMER') {
+      const customerEmail = user.email ? String(user.email).trim().toLowerCase() : null;
+      const contactEmail = contact.email ? String(contact.email).trim().toLowerCase() : null;
+
+      const hasMatchingEmail = Boolean(customerEmail && contactEmail && contactEmail === customerEmail);
+      const isAssignedUser = Boolean(user.userId && contact.assignedUserId && contact.assignedUserId === user.userId);
+
+      const isOwner = hasMatchingEmail || isAssignedUser;
+      if (!isOwner) {
+        const err = new Error('Contact not found or access denied.');
+        err.statusCode = 404;
+        throw err;
+      }
     }
 
     return contact;
@@ -133,8 +166,14 @@ class ContactService {
 
   async delete(tenantId, id) {
     await this.getById(tenantId, id);
-    return await prisma.contact.delete({
-      where: { id },
+    return await prisma.$transaction(async (tx) => {
+      // Unlink or clean relations
+      await tx.task.deleteMany({ where: { contactId: id, tenantId } });
+      await tx.note.deleteMany({ where: { contactId: id, tenantId } });
+      await tx.activity.deleteMany({ where: { contactId: id, tenantId } });
+      return await tx.contact.delete({
+        where: { id },
+      });
     });
   }
 
@@ -142,11 +181,16 @@ class ContactService {
     if (!Array.isArray(ids) || ids.length === 0) {
       return { count: 0 };
     }
-    return await prisma.contact.deleteMany({
-      where: {
-        id: { in: ids },
-        tenantId,
-      },
+    return await prisma.$transaction(async (tx) => {
+      await tx.task.deleteMany({ where: { contactId: { in: ids }, tenantId } });
+      await tx.note.deleteMany({ where: { contactId: { in: ids }, tenantId } });
+      await tx.activity.deleteMany({ where: { contactId: { in: ids }, tenantId } });
+      return await tx.contact.deleteMany({
+        where: {
+          id: { in: ids },
+          tenantId,
+        },
+      });
     });
   }
 }

@@ -3,7 +3,7 @@ const contactService = require('../services/contactService');
 class ContactController {
   async getAll(req, res, next) {
     try {
-      const contacts = await contactService.getAll(req.user.tenantId, req.query);
+      const contacts = await contactService.getAll(req.user.tenantId, req.query, req.user);
       return res.status(200).json({
         success: true,
         count: contacts.length,
@@ -16,7 +16,7 @@ class ContactController {
 
   async getById(req, res, next) {
     try {
-      const contact = await contactService.getById(req.user.tenantId, req.params.id);
+      const contact = await contactService.getById(req.user.tenantId, req.params.id, req.user);
       return res.status(200).json({
         success: true,
         data: contact,

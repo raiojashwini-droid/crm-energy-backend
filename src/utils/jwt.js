@@ -13,6 +13,7 @@ const generateToken = (payload) => {
     userId: payload.userId,
     tenantId: payload.tenantId,
     role: payload.role,
+    email: payload.email,
   };
   return jwt.sign(safePayload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 };

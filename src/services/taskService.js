@@ -23,9 +23,22 @@ const normalizePriority = (p) => {
 };
 
 class TaskService {
-  async getAll(tenantId, query = {}) {
+  async getAll(tenantId, query = {}, user = null) {
     const { status, priority, assignedUserId, leadId, contactId, dealId } = query;
     const where = { tenantId };
+
+    // Scope for CUSTOMER role: only tasks linked to customer account or assigned to them
+    if (user && user.role === 'CUSTOMER') {
+      where.OR = [
+        { assignedUserId: user.userId },
+        { contact: { email: user.email || '__no_email__' } },
+      ];
+    } else {
+      if (assignedUserId) where.assignedUserId = assignedUserId;
+      if (leadId) where.leadId = leadId;
+      if (contactId) where.contactId = contactId;
+      if (dealId) where.dealId = dealId;
+    }
 
     if (status && status !== 'all') {
       where.status = normalizeTaskStatus(status);
@@ -34,11 +47,6 @@ class TaskService {
     if (priority && priority !== 'all') {
       where.priority = normalizePriority(priority);
     }
-
-    if (assignedUserId) where.assignedUserId = assignedUserId;
-    if (leadId) where.leadId = leadId;
-    if (contactId) where.contactId = contactId;
-    if (dealId) where.dealId = dealId;
 
     return await prisma.task.findMany({
       where,
@@ -52,7 +60,7 @@ class TaskService {
     });
   }
 
-  async getById(tenantId, id) {
+  async getById(tenantId, id, user = null) {
     const task = await prisma.task.findFirst({
       where: { id, tenantId },
       include: {
@@ -67,6 +75,16 @@ class TaskService {
       const err = new Error('Task not found or access denied.');
       err.statusCode = 404;
       throw err;
+    }
+
+    // Customer scoping check
+    if (user && user.role === 'CUSTOMER') {
+      const isOwner = task.assignedUserId === user.userId || (task.contact && task.contact.email === user.email);
+      if (!isOwner) {
+        const err = new Error('Task not found or access denied.');
+        err.statusCode = 404;
+        throw err;
+      }
     }
 
     return task;
@@ -115,8 +133,17 @@ class TaskService {
     return task;
   }
 
-  async update(tenantId, id, data) {
-    await this.getById(tenantId, id);
+  async update(tenantId, id, data, user = null) {
+    const existing = await this.getById(tenantId, id, user);
+
+    const isAdmin = user && ['SUPER_ADMIN', 'BUSINESS_OWNER', 'OPERATIONS_SALES_ADMIN'].includes(user.role);
+    if (user && !isAdmin) {
+      if (!existing.assignedUserId || existing.assignedUserId !== user.userId) {
+        const err = new Error('Forbidden. You may only modify tasks assigned to you. Unassigned tasks require administrative authorization.');
+        err.statusCode = 403;
+        throw err;
+      }
+    }
 
     const updateData = {};
     if (data.title !== undefined) updateData.title = data.title.trim();
@@ -136,8 +163,18 @@ class TaskService {
     });
   }
 
-  async toggleComplete(tenantId, id) {
-    const task = await this.getById(tenantId, id);
+  async toggleComplete(tenantId, id, user = null) {
+    const task = await this.getById(tenantId, id, user);
+
+    const isAdmin = user && ['SUPER_ADMIN', 'BUSINESS_OWNER', 'OPERATIONS_SALES_ADMIN'].includes(user.role);
+    if (user && !isAdmin) {
+      if (!task.assignedUserId || task.assignedUserId !== user.userId) {
+        const err = new Error('Forbidden. You may only toggle tasks assigned to you. Unassigned tasks require administrative authorization.');
+        err.statusCode = 403;
+        throw err;
+      }
+    }
+
     const newStatus = task.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
 
     return await prisma.task.update({
@@ -149,8 +186,18 @@ class TaskService {
     });
   }
 
-  async delete(tenantId, id) {
-    await this.getById(tenantId, id);
+  async delete(tenantId, id, user = null) {
+    const task = await this.getById(tenantId, id, user);
+
+    const isAdmin = user && ['SUPER_ADMIN', 'BUSINESS_OWNER', 'OPERATIONS_SALES_ADMIN'].includes(user.role);
+    if (user && !isAdmin) {
+      if (!task.assignedUserId || task.assignedUserId !== user.userId) {
+        const err = new Error('Forbidden. You may only delete tasks assigned to you. Unassigned tasks require administrative authorization.');
+        err.statusCode = 403;
+        throw err;
+      }
+    }
+
     return await prisma.task.delete({
       where: { id },
     });

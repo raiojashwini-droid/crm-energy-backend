@@ -22,16 +22,19 @@ const normalizeDealStage = (stage) => {
 };
 
 class DealService {
-  async getAll(tenantId, query = {}) {
+  async getAll(tenantId, query = {}, user = null) {
     const { stage, assignedUserId, search } = query;
     const where = { tenantId };
 
-    if (stage && stage !== 'all') {
-      where.stage = normalizeDealStage(stage);
+    // Scope for AFFILIATE_PARTNER: only their own assigned partner deals
+    if (user && user.role === 'AFFILIATE_PARTNER') {
+      where.assignedUserId = user.userId;
+    } else if (assignedUserId) {
+      where.assignedUserId = assignedUserId;
     }
 
-    if (assignedUserId) {
-      where.assignedUserId = assignedUserId;
+    if (stage && stage !== 'all') {
+      where.stage = normalizeDealStage(stage);
     }
 
     if (search) {
@@ -53,7 +56,7 @@ class DealService {
     });
   }
 
-  async getById(tenantId, id) {
+  async getById(tenantId, id, user = null) {
     const deal = await prisma.deal.findFirst({
       where: { id, tenantId },
       include: {
@@ -67,6 +70,13 @@ class DealService {
     });
 
     if (!deal) {
+      const err = new Error('Deal not found or access denied.');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    // Affiliate Partner check
+    if (user && user.role === 'AFFILIATE_PARTNER' && deal.assignedUserId !== user.userId) {
       const err = new Error('Deal not found or access denied.');
       err.statusCode = 404;
       throw err;
@@ -125,8 +135,14 @@ class DealService {
     return deal;
   }
 
-  async update(tenantId, id, data, userId) {
-    const existing = await this.getById(tenantId, id);
+  async update(tenantId, id, data, userId, user = null) {
+    const existing = await this.getById(tenantId, id, user);
+
+    if (user && user.role === 'AFFILIATE_PARTNER' && existing.assignedUserId !== user.userId) {
+      const err = new Error('Forbidden. Affiliate Partners may only modify their own assigned deals.');
+      err.statusCode = 403;
+      throw err;
+    }
 
     let value = data.value;
     if (typeof value === 'string') {

@@ -49,6 +49,7 @@ const authenticateToken = async (req, res, next) => {
       userId: decoded.userId,
       tenantId: decoded.tenantId,
       role: decoded.role,
+      email: decoded.email || null,
     };
 
     next();

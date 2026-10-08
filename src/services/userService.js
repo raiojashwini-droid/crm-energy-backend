@@ -63,10 +63,30 @@ class UserService {
   }
 
   async updateProfile(userId, tenantId, data) {
+    const currentUser = await prisma.user.findFirst({
+      where: { id: userId, tenantId },
+    });
+    if (!currentUser) {
+      const err = new Error('User profile not found or access denied.');
+      err.statusCode = 404;
+      throw err;
+    }
+
     const { name, email, avatar } = data;
     const updateData = {};
     if (name) updateData.name = name.trim();
-    if (email) updateData.email = email.trim().toLowerCase();
+    if (email) {
+      const normalized = email.trim().toLowerCase();
+      const existing = await prisma.user.findFirst({
+        where: { tenantId, email: normalized, NOT: { id: userId } },
+      });
+      if (existing) {
+        const err = new Error('This email address is already in use by another team member.');
+        err.statusCode = 409;
+        throw err;
+      }
+      updateData.email = normalized;
+    }
     if (avatar !== undefined) updateData.avatar = avatar;
 
     const user = await prisma.user.update({

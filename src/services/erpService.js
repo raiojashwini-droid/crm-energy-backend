@@ -64,13 +64,14 @@ class ErpService {
       });
 
       // 3b. Create Sales Order
+      const uniqueSuffix = `${Date.now().toString().slice(-4)}${Math.floor(100 + Math.random() * 900)}`;
       const salesOrder = await tx.salesOrder.create({
         data: {
           tenantId,
           dealId: deal.id,
           contactId: deal.contactId || null,
           projectId: project.id,
-          orderNumber: `SO-${Math.floor(100 + Math.random() * 900)}`,
+          orderNumber: `SO-${new Date().getFullYear()}-${uniqueSuffix}`,
           customer: clientName,
           items: `${deal.title} — Deliverables & Commercial Fulfillment Scope`,
           total: deal.value || 0,

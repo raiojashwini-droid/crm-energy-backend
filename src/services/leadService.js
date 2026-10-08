@@ -93,7 +93,7 @@ class LeadService {
         tenantId,
         userId,
         leadId: lead.id,
-        type: 'TASK_CREATED',
+        type: 'NOTE_ADDED',
         title: `Lead '${lead.name}' was created`,
         description: `Source: ${lead.source}, Estimated Value: $${estimatedValue}`,
       },
@@ -110,6 +110,7 @@ class LeadService {
       estimatedValue = parseFloat(estimatedValue.replace(/[^0-9.-]+/g, '')) || 0;
     }
 
+    const validStatuses = ['NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'WON', 'LOST'];
     const updateData = {};
     if (data.name !== undefined) updateData.name = data.name.trim();
     if (data.company !== undefined) updateData.company = data.company.trim();
@@ -117,7 +118,12 @@ class LeadService {
     if (data.phone !== undefined) updateData.phone = data.phone ? data.phone.trim() : null;
     if (data.source !== undefined) updateData.source = data.source;
     if (data.territory !== undefined) updateData.territory = data.territory;
-    if (data.status !== undefined) updateData.status = data.status.toUpperCase();
+    if (data.status !== undefined) {
+      const upper = String(data.status).toUpperCase();
+      if (validStatuses.includes(upper)) {
+        updateData.status = upper;
+      }
+    }
     if (data.qualification !== undefined) updateData.qualification = data.qualification;
     if (data.score !== undefined) updateData.score = parseInt(data.score, 10);
     if (estimatedValue !== undefined) updateData.estimatedValue = estimatedValue;
@@ -149,12 +155,20 @@ class LeadService {
     }
 
     return await prisma.$transaction(async (tx) => {
-      // 1. Check if Contact with identical email exists in this tenant, or create a new Contact
+      // 1. Check if Contact with identical email exists in this tenant without existing lead conversion binding
       let contact = null;
       if (lead.email) {
-        contact = await tx.contact.findFirst({
+        const existingContact = await tx.contact.findFirst({
           where: { tenantId, email: lead.email },
         });
+        if (existingContact) {
+          const alreadyBound = await tx.lead.findFirst({
+            where: { convertedToContactId: existingContact.id },
+          });
+          if (!alreadyBound) {
+            contact = existingContact;
+          }
+        }
       }
 
       if (!contact) {

@@ -45,8 +45,7 @@ class HrService {
       throw err;
     }
 
-    const count = await prisma.hrEmployee.count({ where: { tenantId } });
-    const employeeId = data.employeeId || `EMP-${String(count + 101).padStart(3, '0')}`;
+    const employeeId = data.employeeId || `EMP-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
 
     return await prisma.hrEmployee.create({
       data: {

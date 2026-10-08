@@ -58,8 +58,7 @@ class SupportService {
       throw err;
     }
 
-    const count = await prisma.supportTicket.count({ where: { tenantId } });
-    const ticketNumber = data.ticketNumber || `TCK-${String(count + 501).padStart(4, '0')}`;
+    const ticketNumber = data.ticketNumber || `TCK-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
 
     return await prisma.supportTicket.create({
       data: {

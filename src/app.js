@@ -48,7 +48,7 @@ app.use(
       ) {
         return callback(null, origin);
       }
-      return callback(null, origin);
+      return callback(new Error('CORS policy: Not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -56,9 +56,9 @@ app.use(
   })
 );
 
-// Body parsing middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Body parsing middleware with safety limits
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {

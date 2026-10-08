@@ -1,9 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const hrController = require('../controllers/hrController');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 router.use(authenticateToken);
+
+// HR Module access: strictly restricted to HR Directors, Business Owners & Super Admin
+const HR_AUTHORIZED_ROLES = ['SUPER_ADMIN', 'BUSINESS_OWNER', 'HR'];
+
+router.use(authorizeRoles(...HR_AUTHORIZED_ROLES));
 
 // Employees
 router.get('/employees', hrController.getEmployees);
@@ -19,3 +24,4 @@ router.put('/candidates/:id', hrController.updateCandidate);
 router.delete('/candidates/:id', hrController.deleteCandidate);
 
 module.exports = router;
+

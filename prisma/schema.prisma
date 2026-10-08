@@ -135,7 +135,7 @@ model User {
   passwordHash String
   role         Role       @default(CRM_PRO)
   isActive     Boolean    @default(true)
-  avatar       String?
+  avatar       String?    @db.LongText
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
