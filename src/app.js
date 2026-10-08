@@ -28,23 +28,31 @@ dotenv.config();
 
 const app = express();
 
-// CORS configuration - supports localhost:3000, localhost:5173, and any development port
+// CORS configuration - supports localhost:3000, localhost:5173, Netlify domains, and environment origins
+const envOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
+  : [];
+
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:5173',
-  process.env.CORS_ORIGIN,
+  'https://crm-energy.netlify.app',
+  ...envOrigins,
 ].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/$/, '');
       if (
         allowedOrigins.includes(origin) ||
-        origin.startsWith('http://localhost:') ||
-        origin.startsWith('http://127.0.0.1:')
+        allowedOrigins.includes(cleanOrigin) ||
+        cleanOrigin.startsWith('http://localhost:') ||
+        cleanOrigin.startsWith('http://127.0.0.1:') ||
+        cleanOrigin.endsWith('.netlify.app')
       ) {
         return callback(null, origin);
       }
