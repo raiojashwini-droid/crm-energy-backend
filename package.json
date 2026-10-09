@@ -9,7 +9,8 @@
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "prisma:studio": "prisma studio",
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+    "clean:live": "node scripts/clean_live_db.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
