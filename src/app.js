@@ -28,41 +28,54 @@ dotenv.config();
 
 const app = express();
 
-// CORS configuration - supports localhost:3000, localhost:5173, Netlify domains, and environment origins
-const envOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
-  : [];
+// CORS configuration - supports Netlify, Railway, localhost, and env-configured origins
+const parseOrigins = (raw) => {
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((o) => o.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+};
 
-const allowedOrigins = [
+const defaultAllowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:5173',
   'https://crm-energy.netlify.app',
-  ...envOrigins,
-].filter(Boolean);
+  'https://crm-energy-backend-production.up.railway.app',
+  ...parseOrigins(process.env.CORS_ORIGIN),
+];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      const cleanOrigin = origin.replace(/\/$/, '');
-      if (
-        allowedOrigins.includes(origin) ||
-        allowedOrigins.includes(cleanOrigin) ||
-        cleanOrigin.startsWith('http://localhost:') ||
-        cleanOrigin.startsWith('http://127.0.0.1:') ||
-        cleanOrigin.endsWith('.netlify.app')
-      ) {
-        return callback(null, origin);
-      }
-      return callback(new Error('CORS policy: Not allowed by CORS'));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  })
-);
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+
+    const normalizedOrigin = origin.replace(/\/+$/, '');
+
+    const isExplicitlyAllowed = defaultAllowedOrigins.includes(normalizedOrigin);
+    const isLocalhost =
+      normalizedOrigin.startsWith('http://localhost:') ||
+      normalizedOrigin.startsWith('http://127.0.0.1:');
+    const isNetlify =
+      normalizedOrigin.endsWith('.netlify.app') ||
+      normalizedOrigin === 'https://crm-energy.netlify.app';
+    const isRailway = normalizedOrigin.endsWith('.railway.app');
+
+    if (isExplicitlyAllowed || isLocalhost || isNetlify || isRailway) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS policy: Origin ${origin} not allowed`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
 
 // Body parsing middleware with safety limits
 app.use(express.json({ limit: '10mb' }));

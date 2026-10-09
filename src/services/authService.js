@@ -118,9 +118,7 @@ class AuthService {
       throw err;
     }
 
-    const isBcryptMatch = await comparePassword(password, user.passwordHash);
-    const isDemoPasswordMatch = password === 'Password123!' || password === '123456';
-    const isMatch = isBcryptMatch || isDemoPasswordMatch;
+    const isMatch = await comparePassword(password, user.passwordHash);
 
     if (!isMatch) {
       const err = new Error('Invalid business email or password.');
