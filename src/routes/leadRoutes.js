@@ -3,7 +3,10 @@ const router = express.Router();
 const leadController = require('../controllers/leadController');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
-// Protect all lead routes with JWT authentication
+// Public Lead Creation (No auth required — Website Sign-Up / Consultation Forms)
+router.post('/public', leadController.createPublic);
+
+// Protect subsequent lead routes with JWT authentication
 router.use(authenticateToken);
 
 // Lead Read/Create permissions: Sales, Marketing, Affiliates, Influencers, Leadership

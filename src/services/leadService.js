@@ -275,6 +275,85 @@ class LeadService {
       };
     });
   }
+
+  /**
+   * Create a public lead / inquiry directly from website sign-up or consultation form.
+   */
+  async createPublicLead(data) {
+    if (!data.companyName && !data.company) {
+      const err = new Error('Company name is required.');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (!data.email && !data.phone) {
+      const err = new Error('Email or phone number is required.');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Assign to default enterprise tenant (or first existing tenant)
+    let targetTenant = await prisma.tenant.findFirst({
+      where: { id: 'TENANT-08492' },
+    });
+
+    if (!targetTenant) {
+      targetTenant = await prisma.tenant.findFirst({
+        orderBy: { createdAt: 'asc' },
+      });
+    }
+
+    if (!targetTenant) {
+      const err = new Error('No tenant configured to receive inquiries.');
+      err.statusCode = 500;
+      throw err;
+    }
+
+    const tenantId = targetTenant.id;
+    const company = (data.companyName || data.company || 'Prospective Business').trim();
+    const name = (data.fullName || data.name || company).trim();
+    const email = data.email ? data.email.trim().toLowerCase() : null;
+    const phone = data.phone ? data.phone.trim() : null;
+    const industry = data.industry ? data.industry.trim() : 'Professional Services';
+    const notes = data.notes || (data.password ? `Created via Website Sign-Up (Requested 14-Day Trial). Industry: ${industry}` : `Website inquiry. Industry: ${industry}`);
+
+    const lead = await prisma.lead.create({
+      data: {
+        tenantId,
+        name,
+        company,
+        email,
+        phone,
+        source: 'Website Sign-Up Form',
+        territory: 'North America',
+        status: 'NEW',
+        qualification: `Trial Request: ${industry}`,
+        score: 85,
+        estimatedValue: 1200.00,
+      },
+    });
+
+    // Automatically record activity & note so sales team sees it in their feed
+    await prisma.activity.create({
+      data: {
+        tenantId,
+        leadId: lead.id,
+        type: 'NOTE_ADDED',
+        title: `New Website Lead: ${company}`,
+        description: `Contact: ${name} (${email || phone}). Industry: ${industry}. Notes: ${notes}`,
+      },
+    }).catch(() => {});
+
+    await prisma.note.create({
+      data: {
+        tenantId,
+        leadId: lead.id,
+        content: `Lead captured via CRM nErgy Website Sign-Up Modal.\nCompany: ${company}\nContact: ${name}\nEmail: ${email}\nPhone: ${phone}\nIndustry: ${industry}\nPreferences: 14-Day Trial Workspace Requested`,
+      },
+    }).catch(() => {});
+
+    return lead;
+  }
 }
 
 module.exports = new LeadService();

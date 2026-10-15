@@ -64,6 +64,19 @@ class LeadController {
     }
   }
 
+  async createPublic(req, res, next) {
+    try {
+      const lead = await leadService.createPublicLead(req.body);
+      return res.status(201).json({
+        success: true,
+        message: 'Inquiry and lead created successfully. Our sales team will reach out shortly.',
+        data: lead,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async convert(req, res, next) {
     try {
       const result = await leadService.convertToContact(req.user.tenantId, req.params.id, req.user.userId);
