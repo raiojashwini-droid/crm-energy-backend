@@ -121,6 +121,7 @@ model Tenant {
   ledgerAccounts    LedgerAccount[]
   productionOrders  ProductionOrder[]
   eboxMessages      EboxMessage[]
+  callSessions      StaffCallSession[]
 
   @@map("tenants")
 }
@@ -700,4 +701,37 @@ model EboxMessage {
 
   @@index([tenantId])
   @@map("ebox_messages")
+}
+
+// ==============================================================================
+// CROSS-PLATFORM INTERNAL STAFF CALL SESSIONS
+// ==============================================================================
+
+/// Internal Staff Call Session Record
+model StaffCallSession {
+  id                  String    @id @default(cuid())
+  tenantId            String
+  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversationId      String?
+  callType            String    @default("audio")
+  callerPlatformId    String
+  callerStaffId       String
+  callerName          String
+  recipientPlatformId String
+  recipientStaffId    String
+  recipientName       String
+  status              String    @default("initiated")
+  startedAt           DateTime  @default(now())
+  connectedAt         DateTime?
+  endedAt             DateTime?
+  durationSeconds     Int       @default(0)
+  terminationReason   String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([status])
+  @@index([callerStaffId])
+  @@index([recipientStaffId])
+  @@index([tenantId])
+  @@map("staff_call_sessions")
 }

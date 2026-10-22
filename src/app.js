@@ -20,6 +20,7 @@ const supportRoutes = require('./routes/supportRoutes');
 const tenantRoutes = require('./routes/tenantRoutes');
 const manufacturingRoutes = require('./routes/manufacturingRoutes');
 const eboxRoutes = require('./routes/eboxRoutes');
+const swmtpRoutes = require('./routes/swmtpRoutes');
 
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
@@ -71,14 +72,19 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-Platform-Api-Key', 'X-Api-Key', 'X-SWMTP-Signature'],
   optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
 
 // Body parsing middleware with safety limits
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health Check Endpoint
@@ -107,6 +113,7 @@ app.use('/api/support', supportRoutes);
 app.use('/api/tenants', tenantRoutes);
 app.use('/api/manufacturing', manufacturingRoutes);
 app.use('/api/ebox', eboxRoutes);
+app.use('/api/v1/internal-staff', swmtpRoutes);
 
 // 404 Handler for unknown routes
 app.use(notFoundHandler);

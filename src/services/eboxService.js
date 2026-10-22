@@ -65,8 +65,8 @@ class EboxService {
   }
 
   async sendMessage(tenantId, userId, data) {
-    if (!data.subject || !data.message) {
-      const err = new Error('Subject and message content are required.');
+    if (!data.subject || (!data.message && !data.fileData && !data.fileMetadata)) {
+      const err = new Error('Subject and message content or attachment are required.');
       err.statusCode = 400;
       throw err;
     }
@@ -76,7 +76,10 @@ class EboxService {
       select: { name: true },
     });
 
-    const encryptedMessage = encryptText(data.message.trim());
+    const rawContent = (data.fileData || data.fileMetadata)
+      ? JSON.stringify({ textContent: data.message || '', fileMetadata: data.fileMetadata, fileData: data.fileData, fileName: data.fileName, messageType: data.messageType || 'file' })
+      : (data.message || '').trim();
+    const encryptedMessage = encryptText(rawContent);
 
     const saved = await prisma.eboxMessage.create({
       data: {
@@ -91,11 +94,43 @@ class EboxService {
       },
     });
 
+    let swmtpDelivery = null;
+    if (data.isSwmtp || data.conversationId || data.subject.includes('[SWMTP:')) {
+      try {
+        const swmtpService = require('./swmtpService');
+        const match = data.subject.match(/\[SWMTP:([^\]]+)\]/);
+        const conversationId = data.conversationId || (match ? match[1] : 'conv-swmtp-main');
+        
+        const swmtpResult = await swmtpService.sendStaffReply({
+          tenantId,
+          userId,
+          conversationId,
+          textContent: data.message || '',
+          idempotencyKey: data.idempotencyKey,
+          messageType: data.messageType || (data.fileData || data.fileMetadata ? 'file' : 'text'),
+          fileMetadata: data.fileMetadata || null,
+          fileData: data.fileData || null,
+          fileName: data.fileName || null,
+          skipLocalPersist: true
+        });
+        swmtpDelivery = swmtpResult;
+      } catch (swmtpErr) {
+        console.warn('[eBox SWMTP Outbound Warning]:', swmtpErr.message);
+        swmtpDelivery = { delivered: false, error: swmtpErr.message };
+      }
+    }
+
     return {
       ...saved,
-      message: data.message.trim(),
+      message: (data.message || '').trim(),
+      swmtpDelivery,
     };
   }
 }
 
-module.exports = new EboxService();
+const serviceInstance = new EboxService();
+serviceInstance.encryptText = encryptText;
+serviceInstance.decryptText = decryptText;
+
+module.exports = serviceInstance;
+

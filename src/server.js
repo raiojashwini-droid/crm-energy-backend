@@ -4,11 +4,16 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const app = require('./app');
+const { initCallSignaling } = require('./services/callSignalingService');
 
 const PORT = process.env.PORT || 5000;
 
 const server = app.listen(PORT, () => {
-  console.log(`🚀 CRM nErgy API Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+  console.log(`[Server] CRM nErgy API Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+  
+  // Initialize Socket.IO Call Signaling Service
+  initCallSignaling(server);
+  console.log(`[Call Signaling] CRM nErgy Socket.IO call signaling initialized on port ${PORT}`);
 });
 
 // Handle server startup & runtime errors
