@@ -1,3 +1,4 @@
+const { notifySwmtp } = require('../utils/swmtpSyncNotifier');
 const prisma = require('../config/prisma');
 
 class LeadService {

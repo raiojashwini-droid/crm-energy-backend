@@ -113,6 +113,7 @@ app.use('/api/support', supportRoutes);
 app.use('/api/tenants', tenantRoutes);
 app.use('/api/manufacturing', manufacturingRoutes);
 app.use('/api/ebox', eboxRoutes);
+app.use('/api/zbox', eboxRoutes);
 app.use('/api/v1/internal-staff', swmtpRoutes);
 
 // 404 Handler for unknown routes
