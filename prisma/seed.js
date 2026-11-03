@@ -25,6 +25,7 @@ async function main() {
 
   // 3. Seed All 12 CRM Demo Personas
   const demoUsers = [
+    // 12 Standard Named Personas
     { name: 'Alexander Wright', email: 'a.wright@nergy.io', role: 'BUSINESS_OWNER' },
     { name: 'Leo Fontaine', email: 'l.fontaine@nergy.io', role: 'CONTENT_CREATOR' },
     { name: 'Chloe Rivera', email: 'c.rivera@nergy.io', role: 'INFLUENCER' },
@@ -43,6 +44,20 @@ async function main() {
     { name: 'Javier Ramirez', email: 'j.ramirez@nergy.io', role: 'FINANCE_COMPLIANCE_ADMIN' },
     { name: 'Root Super Admin', email: 'root.superadmin@nergy.io', role: 'SUPER_ADMIN' },
     { name: 'Super Administrator', email: 'superadmin@nergy.io', role: 'SUPER_ADMIN' },
+
+    // 12 Unified Login Cards Direct Aliases
+    { name: 'Business Owner', email: 'business.owner@nergy.io', role: 'BUSINESS_OWNER' },
+    { name: 'Content Creator', email: 'content.creator@nergy.io', role: 'CONTENT_CREATOR' },
+    { name: 'Influencer', email: 'influencer@nergy.io', role: 'INFLUENCER' },
+    { name: 'AI Marketing Pro', email: 'ai.marketing@nergy.io', role: 'AI_MARKETING_PRO' },
+    { name: 'Operations/Sales Admin', email: 'operations.admin@nergy.io', role: 'OPERATIONS_SALES_ADMIN' },
+    { name: 'CRM Pro', email: 'crm.pro@nergy.io', role: 'CRM_PRO' },
+    { name: 'Customer', email: 'customer@nergy.io', role: 'CUSTOMER' },
+    { name: 'Content Builder', email: 'content.builder@nergy.io', role: 'CONTENT_BUILDER' },
+    { name: 'Affiliate Partner', email: 'affiliate.partner@nergy.io', role: 'AFFILIATE_PARTNER' },
+    { name: 'HR', email: 'hr@nergy.io', role: 'HR' },
+    { name: 'Finance/Compliance Admin', email: 'finance.admin@nergy.io', role: 'FINANCE_COMPLIANCE_ADMIN' },
+    { name: 'Super Admin', email: 'super.admin@nergy.io', role: 'SUPER_ADMIN' },
   ];
 
   const userMap = {};

@@ -67,7 +67,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
     };
 
     const abortController = new AbortController();
-    req.on('close', () => {
+    res.on('close', () => {
       if (!res.writableEnded) {
         abortController.abort();
       }
