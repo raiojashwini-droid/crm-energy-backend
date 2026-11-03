@@ -21,6 +21,7 @@ const tenantRoutes = require('./routes/tenantRoutes');
 const manufacturingRoutes = require('./routes/manufacturingRoutes');
 const eboxRoutes = require('./routes/eboxRoutes');
 const swmtpRoutes = require('./routes/swmtpRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
@@ -88,6 +89,7 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health Check Endpoint
+app.get('/health', (req, res) => res.status(200).json({ success: true, message: 'CRM nErgy API is running' }));
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
@@ -115,6 +117,7 @@ app.use('/api/manufacturing', manufacturingRoutes);
 app.use('/api/ebox', eboxRoutes);
 app.use('/api/zbox', eboxRoutes);
 app.use('/api/v1/internal-staff', swmtpRoutes);
+app.use('/api/ai', aiRoutes);
 
 // 404 Handler for unknown routes
 app.use(notFoundHandler);

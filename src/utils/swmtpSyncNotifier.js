@@ -1,18 +1,20 @@
 /**
- * SWMTP Sync Notifier
- * Asynchronous notification helper for syncing CRM events with the SWMTP platform.
+ * SWMTP Sync Notifier Utility
+ * Dispatches sync telemetry and notification events to SWMTP Central Hub fail-safely.
  */
-
-const notifySwmtp = async (eventType, payload) => {
+async function notifySwmtp(eventType, payload = {}) {
   try {
-    // Non-blocking sync hook for external SWMTP platform
-    return { success: true };
-  } catch (error) {
-    console.warn(`[SWMTP Sync Notice]: Failed to dispatch event ${eventType}:`, error.message);
-    return { success: false, error: error.message };
+    const swmtpService = require('../services/swmtpService');
+    if (swmtpService && typeof swmtpService.notifyEvent === 'function') {
+      return await swmtpService.notifyEvent(eventType, payload);
+    }
+  } catch (err) {
+    // Non-blocking fail-safe: log warning without interrupting transactions
+    console.warn('[SWMTP Sync Notifier]:', err?.message || err);
   }
-};
+  return null;
+}
 
 module.exports = {
-  notifySwmtp
+  notifySwmtp,
 };
