@@ -156,6 +156,9 @@ app.use('/v1/internal-staff', swmtpRoutes);
 
 app.use('/api/ai', aiRoutes);
 app.use('/ai', aiRoutes);
+app.use('/api/integration', aiRoutes);
+app.use('/integration', aiRoutes);
+app.use('/api', aiRoutes);
 
 // 404 Handler for unknown routes
 app.use(notFoundHandler);
