@@ -1,5 +1,9 @@
 const prisma = require('../config/prisma');
 
+const GROK_API_KEY = process.env.GROK_API_KEY || '';
+const GROK_BASE_URL = process.env.GROK_BASE_URL || 'https://api.x.ai/v1';
+const GROK_MODEL = process.env.GROK_MODEL || 'grok-4.20-0309-non-reasoning';
+
 /**
  * Detect language of query: 'hi' for Hindi/Hinglish, 'en' for English
  */
@@ -38,8 +42,11 @@ function detectIntent(text) {
   if (lower.includes('contact') || lower.includes('client') || lower.includes('customer') || lower.includes('account')) return 'contacts';
   if (lower.includes('task') || lower.includes('agenda') || lower.includes('todo') || lower.includes('pending')) return 'tasks';
   if (lower.includes('ebox') || lower.includes('zbox') || lower.includes('vault') || lower.includes('encrypt') || lower.includes('secret')) return 'ebox';
-  if (lower.includes('erp') || lower.includes('invoice') || lower.includes('billing') || lower.includes('inventory')) return 'erp';
-  if (lower.includes('hr') || lower.includes('employee') || lower.includes('candidate') || lower.includes('staff')) return 'hr';
+  if (lower.includes('erp') || lower.includes('inventory') || lower.includes('warehouse') || lower.includes('supply chain') || lower.includes('bom')) return 'erp';
+  if (lower.includes('hr') || lower.includes('ats') || lower.includes('hiring') || lower.includes('recruitment') || lower.includes('payroll') || lower.includes('employee')) return 'hr';
+  if (lower.includes('omp') || lower.includes('wholesale') || lower.includes('b2b') || lower.includes('margin')) return 'omp';
+  if (lower.includes('swmtp') || lower.includes('mesh') || lower.includes('protocol')) return 'swmtp';
+  if (lower.includes('other software') || lower.includes('softwares') || lower.includes('ecosystem') || lower.includes('aur software') || lower.includes('dusre software')) return 'ecosystem';
   if (lower.includes('support') || lower.includes('ticket') || lower.includes('issue')) return 'support';
   if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey') || lower.includes('help') || lower.includes('namaste')) return 'greeting';
   return 'general';
@@ -129,11 +136,7 @@ async function getTenantContext(tenantId) {
     };
   } catch (err) {
     console.warn('[NativeAiEngine] Lead fetch warning:', err.message);
-    context.leadStats = {
-      total: 0,
-      byStatus: {},
-      totalEstimatedValue: 0,
-    };
+    context.leadStats = { total: 0, byStatus: {}, totalEstimatedValue: 0 };
     context.leads = [];
   }
 
@@ -176,6 +179,50 @@ async function getTenantContext(tenantId) {
 }
 
 /**
+ * Call Grok LLM with prompt and system context
+ */
+async function callGrok(message, systemPrompt) {
+  if (!GROK_API_KEY) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8500);
+
+  try {
+    const res = await fetch(`${GROK_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROK_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: GROK_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message }
+        ],
+        temperature: 0.35,
+        max_tokens: 1000
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      console.warn(`[NativeAiEngine] Grok API returned HTTP ${res.status}`);
+      return null;
+    }
+
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || null;
+  } catch (err) {
+    clearTimeout(timeout);
+    console.warn(`[NativeAiEngine] Grok invocation warning: ${err.message}`);
+    return null;
+  }
+}
+
+/**
  * Generate high quality context-aware text response
  */
 async function generateNativeResponse(message, user = {}, tenantId = null) {
@@ -183,19 +230,69 @@ async function generateNativeResponse(message, user = {}, tenantId = null) {
   const intent = detectIntent(message);
   const context = await getTenantContext(tenantId || user?.tenantId);
 
-  const userName = user?.name || 'Partner';
+  const userName = user?.name || 'Business Owner';
   const role = user?.role || 'BUSINESS_OWNER';
+  const ls = context.leadStats;
+  const leadsList = context.leads || [];
 
+  // Construct System Prompt for Universal AI Intelligence + Multi-Software Ecosystem
+  const systemPrompt = `You are Zunme AI (also known as Bestie AI), the intelligent Virtual Assistant for CRM nErgy Enterprise and the Kiaan AI Multi-Software Ecosystem.
+You have real-time access to live software databases, multi-software architecture, and universal AI intelligence.
+
+### USER CONTEXT:
+- Name: ${userName}
+- Role: ${role}
+- Tenant ID: ${tenantId || user?.tenantId || 'TENANT-08492'}
+- Language detected: ${lang === 'hi' ? 'Hindi/Hinglish (Answer strictly in natural, professional Hindi/Hinglish)' : 'English (Answer strictly in clear, professional English)'}
+
+### LIVE CRM nErgy DATA (AUTHENTIC REAL DATABASE RECORDS):
+- Total Leads in Database: ${ls.total}
+- Leads Status Breakdown: New: ${ls.byStatus?.NEW ?? 0}, Qualified: ${ls.byStatus?.QUALIFIED ?? 0}, Proposal: ${ls.byStatus?.PROPOSAL ?? 0}, Won: ${ls.byStatus?.WON ?? 0}
+- Total Pipeline Value: ${formatCurrency(ls.totalEstimatedValue, lang === 'hi')}
+- Recent Real Leads:
+${leadsList.map((l, i) => `  ${i + 1}. Name: ${l.name}, Company: ${l.company || 'N/A'}, Status: ${l.status}, Score: ${l.score || 80}/100, Est. Value: ${formatCurrency(l.estimatedValue, lang === 'hi')}, Email: ${l.email || 'N/A'}, Phone: ${l.phone || 'N/A'}, Source: ${l.source || 'Direct Outreach'}`).join('\n')}
+- Deals Count: ${context.dealStats.total}, Deal Pipeline Value: ${formatCurrency(context.dealStats.totalValue, lang === 'hi')}
+- Tasks Count: ${context.taskStats.total}, Pending: ${context.taskStats.pending}, Urgent: ${context.taskStats.urgent}
+
+### CONNECTED ECOSYSTEM SOFTWARES (KIAAN AI MULTI-SOFTWARE PLATFORM):
+1. **CRM nErgy Enterprise**: Customer Relationship Management, Inbound Leads, Deal Pipelines (8 stages), Contacts, Quotes, Invoices, and Task Schedule.
+2. **Kiaan ERP Hub**: Autonomous Supply Chain & Warehouse Management, Multi-Depot Stock Tracking, Automated Reorder Points (ROP), Bill of Materials (BOM) for manufacturing, Vendor Catalogs, Purchase Orders (PO), and Goods Receipt Notes (GRN).
+3. **Kiaan HR & ATS Suite**: Complete Human Capital & Recruitment Management, Applicant Tracking System (ATS), Resume AI Screening, Interview Scheduling, Digital Offer Letters, Employee Onboarding, Attendance, and Payroll Integration.
+4. **OMP Deals Platform**: Wholesale B2B Deal Pipelines, High-Volume Quotation Engines, Tiered Margin & Commission Calculators, B2B Buyer/Seller Contracts, and Order Agreements.
+5. **SWMTP Mesh Gateway**: Secure Web-Mail Transfer Protocol for zero-trust confidential staff messaging and encrypted departmental telemetry.
+6. **Secured eBox / zBox Vault**: Hardware-grade AES-256-GCM encrypted document vault for confidential executive files, board minutes, and audit trails.
+
+### CORE OPERATING RULES:
+1. **Answer ANY question**: You possess universal AI intelligence (coding, business strategy, mathematics, science, writing, general questions, explanations). If the user asks ANY general question (e.g. coding in Python/JS, business ideas, explanations, math, world facts, writing), provide a thorough, helpful, and brilliant answer!
+2. **Live CRM Data**: When asked about leads, deals, tasks, pipelines, or numbers in CRM nErgy, ALWAYS use the authentic live CRM database numbers above (e.g. 3 leads: Jordan Reed, FVCX, abd, $620,000 value). NEVER invent mock records!
+3. **Other Softwares**: When asked about other softwares (ERP Hub, HR-ATS, OMP Deals, SWMTP, eBox) or how they work with CRM, explain their complete architecture, modules, and workflows accurately based on the Connected Ecosystem Softwares above.
+4. **Match User's Language**: If the prompt is in Hindi/Hinglish, reply in fluent, natural Hindi/Hinglish. If in English, reply in crisp English.
+5. **Formatting**: Format your answer with clean Markdown (headers, bullet points, bold text).`;
+
+  // First, attempt to invoke Grok LLM for full intelligence
+  const grokAnswer = await callGrok(message, systemPrompt);
+
+  if (grokAnswer) {
+    let toolExecuted = 'general_intelligence';
+    if (intent === 'leads') toolExecuted = 'get_crm_leads';
+    else if (intent === 'deals') toolExecuted = 'get_crm_deals';
+    else if (intent === 'tasks') toolExecuted = 'get_crm_tasks';
+    else if (intent === 'ebox') toolExecuted = 'get_ebox_status';
+    else if (intent === 'erp' || intent === 'hr' || intent === 'omp' || intent === 'swmtp' || intent === 'ecosystem') toolExecuted = 'query_software_ecosystem';
+
+    return {
+      text: grokAnswer,
+      toolExecuted,
+      conversationId: `conv_nergy_${Date.now()}`
+    };
+  }
+
+  // Fallback to Deterministic Engine if LLM is unavailable
   let toolExecuted = null;
   let text = '';
 
   if (intent === 'leads') {
     toolExecuted = 'get_crm_leads';
-    const ls = context.leadStats;
-    const leadsList = (context.leads && context.leads.length > 0)
-      ? context.leads
-      : [];
-
     const isDetailQuery = /detail|detalis|bare me|profile|batao|dikhao|info|list|all/i.test(message);
 
     if (lang === 'hi') {
@@ -302,6 +399,35 @@ async function generateNativeResponse(message, user = {}, tenantId = null) {
         `• **High / Urgent Priority:** ${ts.urgent}\n\n` +
         `Top priorities include client follow-ups, eBox compliance checks, and closing pending sales proposals today.`;
     }
+  } else if (intent === 'erp' || intent === 'ecosystem') {
+    toolExecuted = 'query_software_ecosystem';
+    if (lang === 'hi') {
+      text = `🌐 **Kiaan AI Multi-Software Ecosystem:**\n\n` +
+        `यहाँ हमारे जुड़े हुए सभी सॉफ्टवेयर्स का विवरण है:\n\n` +
+        `1. **CRM nErgy Enterprise:**\n` +
+        `   • लीड ट्रैकिंग, 8-स्टेज सेल्स पाइपलाइन, इनवॉइसिंग, कॉन्टैक्ट्स और eBox।\n\n` +
+        `2. **Kiaan ERP Hub:**\n` +
+        `   • मल्टी-वेयरहाउस इन्वेंटरी, Bill of Materials (BOM), ऑटोमैटिक रीऑर्डर (ROP), वेंडर परचेज ऑर्डर (PO), और गुड्स रिसीट नोट्स (GRN)।\n\n` +
+        `3. **Kiaan HR & ATS Suite:**\n` +
+        `   • रिक्रूटमेंट, कैंडिडेट पाइपलाइन, AI रिज्यूमे स्क्रीनिंग, बायोमेट्रिक अटेंडेंस और पेरोल इंटीग्रेशन।\n\n` +
+        `4. **OMP Deals B2B Trading Platform:**\n` +
+        `   • होलसेल कोटेशन इंजन, टियर मार्जिन कैलकुलेटर और सप्लायर एग्रीमेंट्स।\n\n` +
+        `5. **Secured eBox / zBox Vault:**\n` +
+        `   • हार्डवेयर-ग्रेड AES-256-GCM एन्क्रिप्टेड एग्जीक्यूटिव फाइल वॉल्ट।`;
+    } else {
+      text = `🌐 **Kiaan AI Multi-Software Ecosystem Platform:**\n\n` +
+        `Here are the fully integrated enterprise software platforms connected to our core AI engine:\n\n` +
+        `1. **CRM nErgy Enterprise:**\n` +
+        `   • Inbound Leads, 8-Stage Deals Pipeline, Task Manager, Contacts, Invoices, and Secured eBox.\n\n` +
+        `2. **Kiaan ERP Hub:**\n` +
+        `   • Multi-depot inventory tracking, Bill of Materials (BOM), automated stock replenishment, vendor POs, and goods receiving.\n\n` +
+        `3. **Kiaan HR & ATS Suite:**\n` +
+        `   • Candidate pipeline, AI resume parsing, interview scorecards, employee onboarding, attendance, and payroll.\n\n` +
+        `4. **OMP Deals B2B Trading Platform:**\n` +
+        `   • Wholesale quotation engines, tiered margin calculators, volume discount matrix, and supplier contracts.\n\n` +
+        `5. **Secured eBox / zBox Vault:**\n` +
+        `   • Hardware-grade AES-256-GCM encrypted document vault for confidential executive files.`;
+    }
   } else if (intent === 'ebox') {
     toolExecuted = 'get_ebox_status';
     if (lang === 'hi') {
@@ -320,24 +446,21 @@ async function generateNativeResponse(message, user = {}, tenantId = null) {
         `All transmitted messages and documents are protected with zero data leakage to unauthorized staff.`;
     }
   } else {
-    // Greeting or general query
     toolExecuted = 'general_assistance';
     if (lang === 'hi') {
-      text = `नमस्ते **${userName}** जी! 🙏 CRM nErgy AI सहायक में आपका स्वागत है।\n\n` +
-        `मैं आपके CRM और ERP सिस्टम से पूरी तरह जुड़ा हुआ हूँ। आप मुझसे कुछ भी पूछ सकते हैं, जैसे:\n` +
-        `• *"मुझे सभी लीड्स (Leads) के बारे में बताओ"*\n` +
-        `• *"इस महीने की सेल्स और डील्स (Deals) का स्टेटस क्या है?"*\n` +
-        `• *"आज के पेंडिंग टास्क (Tasks) दिखाओ"*\n` +
-        `• *"Secured eBox में क्या नया है?"*\n\n` +
-        `कृपया बताइए, आज मैं आपके व्यवसाय में किस प्रकार सहायता कर सकता हूँ?`;
+      text = `नमस्ते **${userName}** जी! 🙏 मैं **Zunme AI** हूँ — आपका Enterprise AI सहायक।\n\n` +
+        `आप मुझसे कुछ भी पूछ सकते हैं:\n` +
+        `• **CRM डेटा:** लीड्स, सेल्स पाइपलाइन, डील्स, पेंडिंग टास्क\n` +
+        `• **अन्य सॉफ्टवेयर्स:** Kiaan ERP Hub, HR-ATS, OMP Deals, eBox\n` +
+        `• **सामान्य व तकनीकी प्रश्न:** कोडिंग, बिज़नेस स्ट्रैटेजी, ईमेल राइटिंग या कोई भी जानकारी!\n\n` +
+        `_बताइए, मैं आपकी किस प्रकार सहायता करूँ?_`;
     } else {
-      text = `Hello **${userName}**! 👋 Welcome to **CRM nErgy Executive AI**.\n\n` +
-        `I am fully synchronized with your CRM database and workflows. You can ask me:\n` +
-        `• *"Summarize new inbound leads today"*\n` +
-        `• *"Show me high-priority deals closing this month"*\n` +
-        `• *"What tasks are scheduled for today?"*\n` +
-        `• *"Check Secured eBox communications status"*\n\n` +
-        `How may I assist your business operations today?`;
+      text = `Hello **${userName}**! 👋 I am **Zunme AI** — your Enterprise AI Copilot.\n\n` +
+        `You can ask me anything:\n` +
+        `• **CRM Data:** Inbound leads, sales pipeline, active deals, pending tasks\n` +
+        `• **Other Softwares:** Kiaan ERP Hub, HR & ATS Suite, OMP Deals, Secured eBox\n` +
+        `• **General & Technical Intelligence:** Coding, business strategy, writing, or any questions!\n\n` +
+        `_How may I assist your business operations today?_`;
     }
   }
 
@@ -354,4 +477,3 @@ module.exports = {
   generateNativeResponse,
   getTenantContext,
 };
-
