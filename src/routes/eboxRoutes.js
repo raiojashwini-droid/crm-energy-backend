@@ -8,5 +8,6 @@ router.use(authorizeRoles('BUSINESS_OWNER', 'SUPER_ADMIN', 'OPERATIONS_SALES_ADM
 
 router.get('/', eboxController.getMessages);
 router.post('/', eboxController.sendMessage);
+router.post('/translate', eboxController.translateMessages);
 
 module.exports = router;
