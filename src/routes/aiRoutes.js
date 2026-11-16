@@ -1,10 +1,101 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken } = require('../utils/jwt');
-const { generateNativeResponse } = require('../services/nativeAiEngine');
+const { generateNativeResponse, callGrok } = require('../services/nativeAiEngine');
 
 const KIAAN_AI_BASE_URL = process.env.KIAAN_AI_URL || '';
 const CRM_CONNECTOR_KEY = process.env.CRM_NERGY_CONNECTOR_KEY || 'crm_nergy_live_secret_key_v2_2026';
+
+const LANG_NAMES = {
+  en: 'English',
+  es: 'Spanish',
+  fr: 'French',
+  de: 'German',
+  hi: 'Hindi',
+  ar: 'Arabic',
+  zh: 'Simplified Chinese',
+  ja: 'Japanese',
+  pt: 'Portuguese',
+  it: 'Italian',
+};
+
+/**
+ * Universal Server-Side Neural Translation Function
+ */
+async function translateServerText(text, targetLang, sourceLang = 'auto') {
+  if (!text || typeof text !== 'string' || !text.trim()) return text;
+  if (!targetLang || targetLang === 'en') return text;
+
+  // 1. Try Google Translate GTX (fast, server-to-server with no browser CORS)
+  try {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text.trim())}`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4500);
+    const resp = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+
+    if (resp.ok) {
+      const json = await resp.json();
+      if (Array.isArray(json) && Array.isArray(json[0])) {
+        const translated = json[0]
+          .filter((item) => item && item[0])
+          .map((item) => item[0])
+          .join('');
+        if (translated && translated.trim()) {
+          return translated.trim();
+        }
+      }
+    }
+  } catch (err) {
+    // Continue to Grok fallback
+  }
+
+  // 2. Grok LLM Neural Translation Fallback
+  try {
+    const langName = LANG_NAMES[targetLang] || targetLang;
+    const prompt = `Translate the following text accurately and naturally into ${langName}. Preserve formatting, names, and tone. Output ONLY the translated text without any quotation marks, notes, explanations, or prefixes:\n\n${text.trim()}`;
+    const grokResult = await callGrok(prompt, `You are an expert enterprise translator specializing in natural, accurate translations into ${langName}. Respond with only the direct translation.`);
+    if (grokResult && typeof grokResult === 'string' && grokResult.trim() && grokResult.trim() !== text.trim()) {
+      return grokResult.trim().replace(/^["']|["']$/g, '');
+    }
+  } catch (grokErr) {
+    // Continue
+  }
+
+  return text;
+}
+
+/**
+ * Translation Endpoint Handler (Single or Batch)
+ */
+async function handleTranslate(req, res) {
+  const { text, texts, targetLang, sourceLang = 'auto' } = req.body;
+  if (!targetLang) {
+    return res.status(400).json({ success: false, error: 'targetLang is required.' });
+  }
+
+  try {
+    if (Array.isArray(texts)) {
+      const translations = await Promise.all(
+        texts.map(async (t) => {
+          if (!t) return '';
+          return await translateServerText(t, targetLang, sourceLang);
+        })
+      );
+      return res.status(200).json({ success: true, targetLang, translations });
+    }
+
+    if (text) {
+      const translatedText = await translateServerText(text, targetLang, sourceLang);
+      return res.status(200).json({ success: true, targetLang, translatedText });
+    }
+
+    return res.status(400).json({ success: false, error: 'Either text or texts array is required.' });
+  } catch (err) {
+    console.error('[Translation Error]:', err.message);
+    return res.status(500).json({ success: false, error: err.message, targetLang });
+  }
+}
 
 /**
  * Flexible authentication extractor: supports Bearer token, x-integration-key, or fallback persona
@@ -233,5 +324,10 @@ router.post('/chat', handleAiChat);
 router.post('/ai/chat', handleAiChat);
 router.post('/integration/chat', handleAiChat);
 router.post('/', handleAiChat);
+
+// Translation Endpoints (Fast Server-Side Multi-Language Neural Translation)
+router.post('/translate', handleTranslate);
+router.post('/ai/translate', handleTranslate);
+router.post('/integration/translate', handleTranslate);
 
 module.exports = router;

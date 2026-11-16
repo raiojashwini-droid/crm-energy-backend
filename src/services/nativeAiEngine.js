@@ -476,4 +476,5 @@ module.exports = {
   detectIntent,
   generateNativeResponse,
   getTenantContext,
+  callGrok,
 };
