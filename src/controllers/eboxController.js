@@ -6,12 +6,8 @@ const VALID_LANGS = new Set(['en', 'es', 'fr', 'de', 'hi', 'ar', 'zh', 'ja', 'pt
 class EboxController {
   async getMessages(req, res, next) {
     try {
-<<<<<<< HEAD
       const tenantId = req.user?.tenantId || 'TENANT-08492';
       const messages = await eboxService.getMessages(tenantId, req.user);
-=======
-      const messages = await eboxService.getMessages(req.user?.tenantId);
->>>>>>> c19c1d725bb23f432e7a7f071f76bb7afe85b367
       return res.status(200).json({
         success: true,
         count: messages.length,
@@ -30,13 +26,9 @@ class EboxController {
 
   async sendMessage(req, res, next) {
     try {
-<<<<<<< HEAD
       const tenantId = req.user?.tenantId || 'TENANT-08492';
       const userId = req.user?.userId || req.user?.id || 'default-owner';
       const message = await eboxService.sendMessage(tenantId, userId, req.body, req.user);
-=======
-      const message = await eboxService.sendMessage(req.user?.tenantId, req.user?.userId, req.body);
->>>>>>> c19c1d725bb23f432e7a7f071f76bb7afe85b367
       return res.status(201).json({
         success: true,
         message: 'Encrypted message transmitted to vault.',

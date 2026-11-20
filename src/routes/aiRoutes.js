@@ -26,17 +26,11 @@ async function translateServerText(text, targetLang, sourceLang = 'auto') {
   if (!text || typeof text !== 'string' || !text.trim()) return text;
   if (!targetLang || targetLang === 'en') return text;
 
-<<<<<<< HEAD
   const trimmed = text.trim();
 
   // 1. Google Neural Dictionary Translate (Extremely Fast, 0 Rate-Limits, Universal Language Detection)
   try {
     const url = `https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=${sourceLang}&tl=${targetLang}&q=${encodeURIComponent(trimmed)}`;
-=======
-  // 1. Try Google Translate GTX (fast, server-to-server with no browser CORS)
-  try {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text.trim())}`;
->>>>>>> c19c1d725bb23f432e7a7f071f76bb7afe85b367
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 4500);
     const resp = await fetch(url, { signal: controller.signal });
@@ -44,7 +38,6 @@ async function translateServerText(text, targetLang, sourceLang = 'auto') {
 
     if (resp.ok) {
       const json = await resp.json();
-<<<<<<< HEAD
       if (Array.isArray(json) && json[0]) {
         const translated = typeof json[0] === 'string' ? json[0] : (Array.isArray(json[0]) ? json[0][0] : null);
         if (translated && typeof translated === 'string' && translated.trim()) {
@@ -66,8 +59,6 @@ async function translateServerText(text, targetLang, sourceLang = 'auto') {
 
     if (resp.ok) {
       const json = await resp.json();
-=======
->>>>>>> c19c1d725bb23f432e7a7f071f76bb7afe85b367
       if (Array.isArray(json) && Array.isArray(json[0])) {
         const translated = json[0]
           .filter((item) => item && item[0])
@@ -79,7 +70,6 @@ async function translateServerText(text, targetLang, sourceLang = 'auto') {
       }
     }
   } catch (err) {
-<<<<<<< HEAD
     // Continue
   }
 
@@ -112,17 +102,6 @@ async function translateServerText(text, targetLang, sourceLang = 'auto') {
     const prompt = `Translate the following text accurately and naturally into ${langName}. Preserve formatting, names, and tone. Output ONLY the translated text without any quotation marks, notes, explanations, or prefixes:\n\n${trimmed}`;
     const grokResult = await callGrok(prompt, `You are an expert enterprise translator specializing in natural, accurate translations into ${langName}. Respond with only the direct translation.`);
     if (grokResult && typeof grokResult === 'string' && grokResult.trim() && grokResult.trim() !== trimmed) {
-=======
-    // Continue to Grok fallback
-  }
-
-  // 2. Grok LLM Neural Translation Fallback
-  try {
-    const langName = LANG_NAMES[targetLang] || targetLang;
-    const prompt = `Translate the following text accurately and naturally into ${langName}. Preserve formatting, names, and tone. Output ONLY the translated text without any quotation marks, notes, explanations, or prefixes:\n\n${text.trim()}`;
-    const grokResult = await callGrok(prompt, `You are an expert enterprise translator specializing in natural, accurate translations into ${langName}. Respond with only the direct translation.`);
-    if (grokResult && typeof grokResult === 'string' && grokResult.trim() && grokResult.trim() !== text.trim()) {
->>>>>>> c19c1d725bb23f432e7a7f071f76bb7afe85b367
       return grokResult.trim().replace(/^["']|["']$/g, '');
     }
   } catch (grokErr) {

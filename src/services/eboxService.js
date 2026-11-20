@@ -192,7 +192,6 @@ const decryptText = (cipherText) => {
   return cipherText;
 };
 
-<<<<<<< HEAD
 function normalizeRole(roleStr) {
   if (!roleStr) return 'business_owner';
   const r = roleStr.toLowerCase().replace(/[^a-z0-9]/g, '_');
@@ -228,17 +227,6 @@ class EboxService {
         userContext?.role === 'SUPER_ADMIN';
 
       const decrypted = messages.map((m) => {
-=======
-class EboxService {
-  async getMessages(tenantId) {
-    try {
-      const messages = await prisma.eboxMessage.findMany({
-        where: { tenantId },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      return messages.map((m) => {
->>>>>>> c19c1d725bb23f432e7a7f071f76bb7afe85b367
         let plainMessage = m.message;
         let decryptFailed = false;
 
@@ -259,7 +247,6 @@ class EboxService {
           isDecryptError: decryptFailed,
         };
       });
-<<<<<<< HEAD
 
       // If Executive, return all messages across all vaults & role channels
       if (isExecutive) {
@@ -298,8 +285,6 @@ class EboxService {
 
         return false;
       });
-=======
->>>>>>> c19c1d725bb23f432e7a7f071f76bb7afe85b367
     } catch (err) {
       console.error('[eBox getMessages critical error]:', err);
       // Return empty array instead of failing request with 500
@@ -314,7 +299,6 @@ class EboxService {
       throw err;
     }
 
-<<<<<<< HEAD
     const rawRole = normalizeRole(userContext?.role);
     const isExecutive = !userContext ||
       rawRole === 'business_owner' ||
@@ -322,22 +306,15 @@ class EboxService {
       userContext?.role === 'BUSINESS_OWNER' ||
       userContext?.role === 'SUPER_ADMIN';
 
-=======
->>>>>>> c19c1d725bb23f432e7a7f071f76bb7afe85b367
     let user = null;
     try {
       user = await prisma.user.findUnique({
         where: { id: userId },
-<<<<<<< HEAD
         select: { name: true, role: true },
-=======
-        select: { name: true },
->>>>>>> c19c1d725bb23f432e7a7f071f76bb7afe85b367
       });
     } catch (userErr) {
       console.warn('[eBox] Could not fetch user name:', userErr.message);
     }
-<<<<<<< HEAD
 
     const senderDisplayName = data.senderName || user?.name || userContext?.name || (isExecutive ? 'Super Executive Admin' : `${userContext?.role || 'Staff Member'}`);
 
@@ -355,8 +332,6 @@ class EboxService {
     }
 
     const recipient = data.recipient || (isExecutive ? 'Kiaan Tech Team' : 'Business Owner & Super Admin');
-=======
->>>>>>> c19c1d725bb23f432e7a7f071f76bb7afe85b367
 
     const rawContent = (data.fileData || data.fileMetadata)
       ? JSON.stringify({
@@ -367,12 +342,6 @@ class EboxService {
           messageType: data.messageType || 'file'
         })
       : (data.message || '').trim();
-<<<<<<< HEAD
-=======
-
-    // Encrypt content with primary GCM key
-    const encryptedMessage = encryptText(rawContent);
->>>>>>> c19c1d725bb23f432e7a7f071f76bb7afe85b367
 
     // Encrypt content with primary GCM key
     let encryptedMessage;
