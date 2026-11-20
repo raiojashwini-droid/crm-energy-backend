@@ -11,12 +11,13 @@ const USER_DIRECTORY_ROLES = [
   'OPERATIONS_SALES_ADMIN',
   'FINANCE_COMPLIANCE_ADMIN',
   'CRM_PRO',
-  'HR',
   'AI_MARKETING_PRO',
   'AFFILIATE_PARTNER',
+  'INFLUENCER',
   'CONTENT_CREATOR',
   'CONTENT_BUILDER',
-  'INFLUENCER',
+  'HR',
+  'CUSTOMER',
 ];
 
 router.get('/', authorizeRoles(...USER_DIRECTORY_ROLES), userController.getAll);

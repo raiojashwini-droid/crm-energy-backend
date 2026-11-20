@@ -5,6 +5,7 @@ const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 router.use(authenticateToken);
 
+// Deal Read permissions: All 12 platform personas under this company tenant
 const DEAL_READ_ROLES = [
   'SUPER_ADMIN',
   'BUSINESS_OWNER',
@@ -13,6 +14,11 @@ const DEAL_READ_ROLES = [
   'CRM_PRO',
   'AI_MARKETING_PRO',
   'AFFILIATE_PARTNER',
+  'INFLUENCER',
+  'CONTENT_CREATOR',
+  'CONTENT_BUILDER',
+  'HR',
+  'CUSTOMER',
 ];
 
 const DEAL_CREATE_ROLES = [
@@ -21,6 +27,7 @@ const DEAL_CREATE_ROLES = [
   'OPERATIONS_SALES_ADMIN',
   'CRM_PRO',
   'AFFILIATE_PARTNER',
+  'CUSTOMER',
 ];
 
 const DEAL_UPDATE_ROLES = [
@@ -29,6 +36,7 @@ const DEAL_UPDATE_ROLES = [
   'OPERATIONS_SALES_ADMIN',
   'CRM_PRO',
   'AFFILIATE_PARTNER',
+  'CUSTOMER',
 ];
 
 const DEAL_DELETE_ROLES = [
