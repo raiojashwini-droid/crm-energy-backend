@@ -125,6 +125,64 @@ class UserService {
 
     return tenant;
   }
+
+  async getNotifications(tenantId, userId) {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { settings: true },
+    });
+
+    const tenantSettings = (tenant && typeof tenant.settings === 'object' && tenant.settings !== null)
+      ? tenant.settings
+      : {};
+
+    const userNotifs = (tenantSettings.userNotifications && tenantSettings.userNotifications[userId])
+      ? tenantSettings.userNotifications[userId]
+      : tenantSettings.notifications;
+
+    return userNotifs || {
+      emailDeals: true,
+      emailLeads: true,
+      taskReminders: true,
+      weeklyReport: true,
+      securityAlerts: true,
+    };
+  }
+
+  async updateNotifications(tenantId, userId, notifs = {}) {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { settings: true },
+    });
+
+    const currentSettings = (tenant && typeof tenant.settings === 'object' && tenant.settings !== null)
+      ? tenant.settings
+      : {};
+
+    const cleanNotifs = {
+      emailDeals: notifs.emailDeals !== undefined ? Boolean(notifs.emailDeals) : true,
+      emailLeads: notifs.emailLeads !== undefined ? Boolean(notifs.emailLeads) : true,
+      taskReminders: notifs.taskReminders !== undefined ? Boolean(notifs.taskReminders) : true,
+      weeklyReport: notifs.weeklyReport !== undefined ? Boolean(notifs.weeklyReport) : true,
+      securityAlerts: notifs.securityAlerts !== undefined ? Boolean(notifs.securityAlerts) : true,
+    };
+
+    const userNotifications = currentSettings.userNotifications || {};
+    userNotifications[userId] = cleanNotifs;
+
+    const updatedSettings = {
+      ...currentSettings,
+      notifications: cleanNotifs,
+      userNotifications,
+    };
+
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { settings: updatedSettings },
+    });
+
+    return cleanNotifs;
+  }
 }
 
 module.exports = new UserService();

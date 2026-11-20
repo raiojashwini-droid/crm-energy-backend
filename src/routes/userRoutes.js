@@ -23,6 +23,10 @@ router.get('/', authorizeRoles(...USER_DIRECTORY_ROLES), userController.getAll);
 router.put('/profile', userController.updateProfile);
 router.put('/company', authorizeRoles('SUPER_ADMIN', 'BUSINESS_OWNER', 'OPERATIONS_SALES_ADMIN'), userController.updateCompany);
 
+// Notification Delivery Preferences
+router.get('/notifications', userController.getNotifications);
+router.put('/notifications', userController.updateNotifications);
+
 // Allow user to view their own profile, or administrative roles to view any member
 router.get('/:id', (req, res, next) => {
   if (req.user && (req.user.userId === req.params.id || req.user.id === req.params.id)) {

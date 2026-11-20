@@ -51,6 +51,31 @@ class UserController {
       next(error);
     }
   }
+
+  async getNotifications(req, res, next) {
+    try {
+      const notifications = await userService.getNotifications(req.user.tenantId, req.user.userId || req.user.id);
+      return res.status(200).json({
+        success: true,
+        data: notifications,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateNotifications(req, res, next) {
+    try {
+      const updated = await userService.updateNotifications(req.user.tenantId, req.user.userId || req.user.id, req.body);
+      return res.status(200).json({
+        success: true,
+        message: 'Notification delivery rules updated successfully.',
+        data: updated,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new UserController();
