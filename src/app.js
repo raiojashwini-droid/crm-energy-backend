@@ -49,6 +49,7 @@ const defaultAllowedOrigins = [
   'http://127.0.0.1:5173',
   'https://crm-energy.netlify.app',
   'https://crm-energy-backend-production.up.railway.app',
+  'https://crm-energy-backend-production-59b6.up.railway.app',
   ...parseOrigins(process.env.CORS_ORIGIN),
 ];
 
