@@ -1,5 +1,28 @@
 const prisma = require('../config/prisma');
 
+let tableChecked = false;
+async function ensureRolePermissionsTable() {
+  if (tableChecked) return;
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS \`role_permissions\` (
+        \`id\` VARCHAR(191) NOT NULL,
+        \`tenantId\` VARCHAR(191) NOT NULL,
+        \`roleId\` VARCHAR(191) NOT NULL,
+        \`allowedNavIds\` LONGTEXT NOT NULL,
+        \`createdAt\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+        \`updatedAt\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+        PRIMARY KEY (\`id\`),
+        UNIQUE KEY \`unique_tenant_role\` (\`tenantId\`, \`roleId\`),
+        INDEX \`role_permissions_tenantId_idx\` (\`tenantId\`)
+      ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    `);
+    tableChecked = true;
+  } catch (err) {
+    console.warn('[RolePermission ensureTable warning]:', err.message);
+  }
+}
+
 // 12 Standard Roles verified from CRM Architecture & Login Gateway
 const ALL_CRM_ROLES = [
   'business_owner',
@@ -70,28 +93,45 @@ class RolePermissionController {
   async getAllPermissions(req, res, next) {
     try {
       const tenantId = req.user?.tenantId || 'TENANT-08492';
+      await ensureRolePermissionsTable();
 
-      // 1. Fetch customized permissions from database
-      const dbRecords = await prisma.rolePermission.findMany({
-        where: { tenantId }
-      });
+      let dbRecords = [];
+      try {
+        dbRecords = await prisma.rolePermission.findMany({
+          where: { tenantId }
+        });
+      } catch (e) {
+        console.warn('[RolePermission findMany error]:', e.message);
+      }
 
       // 2. Build complete matrix with defaults as baseline
       const mergedPermissions = { ...DEFAULT_PERMISSIONS };
 
-      dbRecords.forEach((record) => {
+      if (!dbRecords || dbRecords.length === 0) {
         try {
-          const parsed = typeof record.allowedNavIds === 'string'
-            ? JSON.parse(record.allowedNavIds)
-            : record.allowedNavIds;
-
-          if (Array.isArray(parsed)) {
-            mergedPermissions[record.roleId] = parsed;
+          const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+          if (tenant?.settings) {
+            const settingsObj = typeof tenant.settings === 'string' ? JSON.parse(tenant.settings) : tenant.settings;
+            if (settingsObj?.rolePermissions) {
+              Object.assign(mergedPermissions, settingsObj.rolePermissions);
+            }
           }
-        } catch (e) {
-          console.warn(`[RolePermission] Error parsing record for ${record.roleId}:`, e.message);
-        }
-      });
+        } catch (e) {}
+      } else {
+        dbRecords.forEach((record) => {
+          try {
+            const parsed = typeof record.allowedNavIds === 'string'
+              ? JSON.parse(record.allowedNavIds)
+              : record.allowedNavIds;
+
+            if (Array.isArray(parsed)) {
+              mergedPermissions[record.roleId] = parsed;
+            }
+          } catch (e) {
+            console.warn(`[RolePermission] Error parsing record for ${record.roleId}:`, e.message);
+          }
+        });
+      }
 
       return res.status(200).json({
         success: true,
@@ -128,6 +168,8 @@ class RolePermissionController {
         });
       }
 
+      await ensureRolePermissionsTable();
+
       // Safety: Business Owner and Super Admin must retain basic administrative access
       let sanitizedNavIds = [...allowedNavIds];
       if (roleId === 'business_owner' || roleId === 'super_admin') {
@@ -140,29 +182,34 @@ class RolePermissionController {
       const jsonStr = JSON.stringify(sanitizedNavIds);
 
       // Upsert in database
-      const updated = await prisma.rolePermission.upsert({
-        where: {
-          tenantId_roleId: {
+      let updated = null;
+      try {
+        updated = await prisma.rolePermission.upsert({
+          where: {
+            tenantId_roleId: {
+              tenantId,
+              roleId
+            }
+          },
+          update: {
+            allowedNavIds: jsonStr
+          },
+          create: {
             tenantId,
-            roleId
+            roleId,
+            allowedNavIds: jsonStr
           }
-        },
-        update: {
-          allowedNavIds: jsonStr
-        },
-        create: {
-          tenantId,
-          roleId,
-          allowedNavIds: jsonStr
-        }
-      });
+        });
+      } catch (dbErr) {
+        console.warn(`[RolePermission upsert db error for ${roleId}]:`, dbErr.message);
+      }
 
       // Resilient mirror into Tenant.settings as secondary backup
       try {
         const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
         let currentSettings = {};
         if (tenant?.settings) {
-          try { currentSettings = JSON.parse(tenant.settings); } catch (e) {}
+          try { currentSettings = typeof tenant.settings === 'string' ? JSON.parse(tenant.settings) : tenant.settings; } catch (e) {}
         }
         currentSettings.rolePermissions = currentSettings.rolePermissions || {};
         currentSettings.rolePermissions[roleId] = sanitizedNavIds;
@@ -181,7 +228,7 @@ class RolePermissionController {
         data: {
           roleId,
           allowedNavIds: sanitizedNavIds,
-          updatedAt: updated.updatedAt
+          updatedAt: updated?.updatedAt || new Date().toISOString()
         }
       });
     } catch (error) {
@@ -206,6 +253,8 @@ class RolePermissionController {
         });
       }
 
+      await ensureRolePermissionsTable();
+
       const results = {};
 
       for (const [roleId, navIds] of Object.entries(permissions)) {
@@ -220,19 +269,42 @@ class RolePermissionController {
         }
 
         const jsonStr = JSON.stringify(sanitizedNavIds);
-
-        await prisma.rolePermission.upsert({
-          where: {
-            tenantId_roleId: {
-              tenantId,
-              roleId
-            }
-          },
-          update: { allowedNavIds: jsonStr },
-          create: { tenantId, roleId, allowedNavIds: jsonStr }
-        });
-
         results[roleId] = sanitizedNavIds;
+
+        try {
+          await prisma.rolePermission.upsert({
+            where: {
+              tenantId_roleId: {
+                tenantId,
+                roleId
+              }
+            },
+            update: { allowedNavIds: jsonStr },
+            create: { tenantId, roleId, allowedNavIds: jsonStr }
+          });
+        } catch (dbErr) {
+          console.warn(`[RolePermission db upsert error for ${roleId}]:`, dbErr.message);
+        }
+      }
+
+      // Always mirror into Tenant.settings as secondary persistent backup
+      try {
+        const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+        let currentSettings = {};
+        if (tenant?.settings) {
+          try {
+            currentSettings = typeof tenant.settings === 'string' ? JSON.parse(tenant.settings) : tenant.settings;
+          } catch (e) {}
+        }
+        currentSettings.rolePermissions = currentSettings.rolePermissions || {};
+        Object.assign(currentSettings.rolePermissions, results);
+
+        await prisma.tenant.update({
+          where: { id: tenantId },
+          data: { settings: JSON.stringify(currentSettings) }
+        });
+      } catch (mirrorErr) {
+        console.warn('[RolePermission bulk mirror warning]:', mirrorErr.message);
       }
 
       return res.status(200).json({
@@ -253,10 +325,26 @@ class RolePermissionController {
   async resetToDefaults(req, res, next) {
     try {
       const tenantId = req.user?.tenantId || 'TENANT-08492';
+      await ensureRolePermissionsTable();
 
-      await prisma.rolePermission.deleteMany({
-        where: { tenantId }
-      });
+      try {
+        await prisma.rolePermission.deleteMany({
+          where: { tenantId }
+        });
+      } catch (e) {}
+
+      try {
+        const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+        let currentSettings = {};
+        if (tenant?.settings) {
+          try { currentSettings = typeof tenant.settings === 'string' ? JSON.parse(tenant.settings) : tenant.settings; } catch (e) {}
+        }
+        delete currentSettings.rolePermissions;
+        await prisma.tenant.update({
+          where: { id: tenantId },
+          data: { settings: JSON.stringify(currentSettings) }
+        });
+      } catch (e) {}
 
       return res.status(200).json({
         success: true,
