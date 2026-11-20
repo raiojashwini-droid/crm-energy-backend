@@ -22,7 +22,10 @@ const manufacturingRoutes = require('./routes/manufacturingRoutes');
 const eboxRoutes = require('./routes/eboxRoutes');
 const swmtpRoutes = require('./routes/swmtpRoutes');
 const aiRoutes = require('./routes/aiRoutes');
+<<<<<<< HEAD
 const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
+=======
+>>>>>>> c19c1d725bb23f432e7a7f071f76bb7afe85b367
 
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
@@ -173,9 +176,12 @@ app.use('/ebox', eboxRoutes);
 app.use('/api/zbox', eboxRoutes);
 app.use('/zbox', eboxRoutes);
 
+<<<<<<< HEAD
 app.use('/api/roles-permissions', rolePermissionRoutes);
 app.use('/roles-permissions', rolePermissionRoutes);
 
+=======
+>>>>>>> c19c1d725bb23f432e7a7f071f76bb7afe85b367
 app.use('/api/v1/internal-staff', swmtpRoutes);
 app.use('/v1/internal-staff', swmtpRoutes);
 
