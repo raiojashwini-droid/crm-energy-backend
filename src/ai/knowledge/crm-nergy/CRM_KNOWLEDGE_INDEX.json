@@ -1,0 +1,173 @@
+{
+  "software_id": "crm-nergy",
+  "software_name": "CRM nErgy",
+  "knowledge_version": "2.0.0",
+  "last_indexed": "2026-11-02T14:55:00.000Z",
+  "source_documents": [
+    {
+      "file_name": "CRM_MASTER_MEMORY.md",
+      "category": "core_reference",
+      "description": "Complete consolidated master memory covering all 24 architectural sections of CRM nErgy AI"
+    },
+    {
+      "file_name": "CRM_SOFTWARE_DISCOVERY.md",
+      "category": "architecture_overview",
+      "description": "Technical stack, metrics, ecosystem integration, and architectural audit report"
+    },
+    {
+      "file_name": "CRM_MODULE_INVENTORY.md",
+      "category": "module_documentation",
+      "description": "Exhaustive functional inventory of all 22 primary modules, ERP operations, HR, Support, and AI SuperHouse"
+    },
+    {
+      "file_name": "CRM_MENU_AND_ROUTES.md",
+      "category": "navigation_routes",
+      "description": "Full matrix of 58 frontend routing paths, sidebar menus, and access rules"
+    },
+    {
+      "file_name": "CRM_FEATURES_AND_FIELDS.md",
+      "category": "ui_specifications",
+      "description": "Field-level specifications for forms, tables, buttons, filters, and modals"
+    },
+    {
+      "file_name": "CRM_API_INVENTORY.md",
+      "category": "api_specifications",
+      "description": "Catalog of 48 REST API endpoints across 18 backend controllers"
+    },
+    {
+      "file_name": "CRM_DATABASE_INVENTORY.md",
+      "category": "database_schema",
+      "description": "23 Prisma models, foreign key relationships, and 5 system enums"
+    },
+    {
+      "file_name": "CRM_ROLES_AND_PERMISSIONS.md",
+      "category": "security_rbac",
+      "description": "The 12 business personas, landing pages, and detailed RBAC permission matrix"
+    },
+    {
+      "file_name": "CRM_WORKFLOWS.md",
+      "category": "business_logic",
+      "description": "Verified workflows (Lead-to-Cash, Procurement, ATS Hiring, SLA Resolution, Zunme AI Actions)"
+    },
+    {
+      "file_name": "CRM_KNOWLEDGE_GAPS.md",
+      "category": "integration_gaps",
+      "description": "Distinction between static software documentation and live transactional data"
+    }
+  ],
+  "module_names": [
+    "Dashboard",
+    "Contacts",
+    "Leads",
+    "Sales Pipeline",
+    "Tasks & Reminders",
+    "Communication Hub",
+    "Territory Management",
+    "ERP Projects",
+    "Procurement & Purchase Orders",
+    "Sales Orders",
+    "Warehouse Inventory",
+    "Manufacturing & Production",
+    "Invoicing & Analytic Accounting",
+    "HR Employees",
+    "Candidate ATS Pipeline",
+    "Customer Support Tickets",
+    "Knowledge Base",
+    "Zunme AI / Bestie AI",
+    "AI Voice Agent",
+    "AI Video Agent",
+    "AI Marketing Hub",
+    "Administration & Secured eBox"
+  ],
+  "route_references": {
+    "total_routes": 58,
+    "primary_crm_prefix": "/crm",
+    "connected_portals": ["/oal", "/omp"]
+  },
+  "api_references": {
+    "total_endpoints": 48,
+    "base_prefix": "/api",
+    "route_modules": [
+      "authRoutes",
+      "contactRoutes",
+      "leadRoutes",
+      "dealRoutes",
+      "taskRoutes",
+      "erpRoutes",
+      "hrRoutes",
+      "supportRoutes",
+      "invoiceRoutes",
+      "eboxRoutes",
+      "swmtpRoutes",
+      "activityRoutes",
+      "noteRoutes",
+      "territoryRoutes",
+      "userRoutes",
+      "tenantRoutes",
+      "manufacturingRoutes",
+      "communicationRoutes"
+    ]
+  },
+  "database_model_references": {
+    "total_models": 23,
+    "orm": "Prisma",
+    "database": "MySQL",
+    "models": [
+      "Tenant",
+      "User",
+      "Lead",
+      "Contact",
+      "Deal",
+      "Task",
+      "Note",
+      "Activity",
+      "ErpProject",
+      "SalesOrder",
+      "PurchaseOrder",
+      "InventoryItem",
+      "Invoice",
+      "Communication",
+      "Territory",
+      "HrEmployee",
+      "HrCandidate",
+      "SupportTicket",
+      "KnowledgeArticle",
+      "LedgerAccount",
+      "ProductionOrder",
+      "EboxMessage",
+      "StaffCallSession"
+    ]
+  },
+  "role_references": [
+    "business_owner",
+    "customer",
+    "content_creator",
+    "content_builder",
+    "influencer",
+    "affiliate_partner",
+    "ai_marketing_pro",
+    "hr",
+    "operations_sales_admin",
+    "finance_compliance_admin",
+    "crm_pro",
+    "super_admin"
+  ],
+  "workflow_references": [
+    "Lead-to-Cash Workflow",
+    "Requisition-to-Payment Workflow",
+    "ATS Candidate Hiring Workflow",
+    "Support SLA Resolution Workflow",
+    "Zunme AI JSON Action Execution Protocol"
+  ],
+  "knowledge_completeness": {
+    "software_architecture": "100%",
+    "modules_and_features": "100%",
+    "routes_and_navigation": "100%",
+    "database_models": "100%",
+    "api_endpoints": "100%",
+    "roles_and_permissions": "100%",
+    "business_workflows": "100%",
+    "live_database_connection": "Pending Step 3 (Requires Live Backend Integration)"
+  }
+}
+

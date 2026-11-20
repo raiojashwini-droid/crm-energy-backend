@@ -4,7 +4,7 @@ const eboxService = require('./eboxService');
 
 class SwmtpService {
   constructor() {
-    this.timeoutMs = 5000;
+    this.timeoutMs = 30000; // 30s timeout for media and high-res image dispatches
   }
 
   getConnectorKey() {

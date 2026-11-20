@@ -1,0 +1,210 @@
+{
+  "system_metadata": {
+    "software_name": "CRM nErgy AI",
+    "version": "2.0.0",
+    "ecosystem": "Kiaan Tech Group / nErgy Logistics & Software Systems",
+    "tagline": "Make AI Your Bestie — Your Autonomous 24/7 Operating Partner",
+    "architecture": "Multi-Tenant Enterprise SaaS (React 18 + Vite Frontend, Node.js + Express REST API, Prisma ORM + MySQL Database, SWMTP Protocol)"
+  },
+  "roles_and_permissions": [
+    {
+      "id": "business_owner",
+      "title": "Business Owner / Executive",
+      "badge": "Executive Command Access",
+      "default_route": "/crm/dashboard",
+      "description": "Full administrative command across all CRM, ERP, HR, Financial, and AI modules."
+    },
+    {
+      "id": "customer",
+      "title": "Client & Customer Portal",
+      "badge": "Customer Self-Service Vault",
+      "default_route": "/crm/dashboard",
+      "description": "Customer self-service portal for support tickets, knowledge base, contact history, and order updates."
+    },
+    {
+      "id": "content_creator",
+      "title": "AI Media & Video Creator",
+      "badge": "Creative Media Command",
+      "default_route": "/crm/ai-video",
+      "description": "Direct access to AI Video Agent, Muzik Studio, Image TalkR, and brand creative assets."
+    },
+    {
+      "id": "content_builder",
+      "title": "Campaign & Content Builder",
+      "badge": "Campaign Asset Command",
+      "default_route": "/crm/marketing",
+      "description": "Campaign builder, multi-channel email marketing, and automated copywriting."
+    },
+    {
+      "id": "influencer",
+      "title": "Brand Ambassador & Influencer",
+      "badge": "Influencer Monetization",
+      "default_route": "/solutions/influencers",
+      "description": "Campaign deliverable tracking, sponsored lead capture, and brand outreach."
+    },
+    {
+      "id": "affiliate_partner",
+      "title": "Affiliate Deal Partner",
+      "badge": "Affiliate Growth Vault",
+      "default_route": "/crm/pipeline",
+      "description": "Deal referral tracking, partner commissions, and co-marketing revenue."
+    },
+    {
+      "id": "ai_marketing_pro",
+      "title": "AI Marketing Specialist",
+      "badge": "AI Growth Command",
+      "default_route": "/crm/marketing",
+      "description": "Conversion funnel analytics, autonomous campaign optimization, and lead scoring."
+    },
+    {
+      "id": "hr",
+      "title": "Human Resources Director",
+      "badge": "HR & Talent Command",
+      "default_route": "/crm/hr",
+      "description": "Employee directory, applicant recruiting (ATS), interviews, and payroll."
+    },
+    {
+      "id": "operations_sales_admin",
+      "title": "Operations & Sales Administrator",
+      "badge": "Operations & Fulfillment Command",
+      "default_route": "/crm/erp",
+      "description": "ERP projects, purchase orders, sales orders, warehouse inventory, and production."
+    },
+    {
+      "id": "finance_compliance_admin",
+      "title": "Finance & Compliance Administrator",
+      "badge": "Financial Governance & Compliance",
+      "default_route": "/features/analytic-accounting",
+      "description": "General ledger accounts, invoicing, tax, audit logs, and compliance."
+    },
+    {
+      "id": "crm_pro",
+      "title": "CRM & Pipeline Specialist",
+      "badge": "Sales & Pipeline Command",
+      "default_route": "/crm/leads",
+      "description": "Daily lead qualification, contact records, deals Kanban, and scheduled tasks."
+    },
+    {
+      "id": "super_admin",
+      "title": "Master Super Administrator",
+      "badge": "Root System Command",
+      "default_route": "/crm/admin",
+      "description": "Tenant provisioning, system security logs, eBox hotline to Kiaan Tech, and platform settings."
+    }
+  ],
+  "pipeline_stages": [
+    { "key": "NEW_LEAD", "name": "New Lead", "probability": 10 },
+    { "key": "CONTACTED", "name": "Contacted", "probability": 25 },
+    { "key": "QUALIFIED", "name": "Qualified", "probability": 40 },
+    { "key": "OPPORTUNITY", "name": "Opportunity", "probability": 60 },
+    { "key": "PROPOSAL", "name": "Proposal", "probability": 75 },
+    { "key": "NEGOTIATION", "name": "Negotiation", "probability": 90 },
+    { "key": "WON", "name": "Won", "probability": 100 },
+    { "key": "LOST", "name": "Lost", "probability": 0 }
+  ],
+  "ai_superhouse_studios": [
+    { "id": "bestie", "name": "Zunme AI / Bestie AI", "role": "Autonomous 24/7 Operating Partner" },
+    { "id": "muzik", "name": "AAI Muzik Hit Studio", "role": "Commercial Soundtrack & Audio Blueprint Generation" },
+    { "id": "realtalk", "name": "AAI Real Talk", "role": "Realistic Multi-Speaker Dialogue Generation" },
+    { "id": "audio-writer", "name": "AI Audio Writer", "role": "Timed 30s/60s Voiceover Commercial Scripts" },
+    { "id": "contalk", "name": "AI ConTalk", "role": "Sales Objection Handling & Deal Desking Closing Scripts" },
+    { "id": "film-maker", "name": "AI Film Maker", "role": "Cinematic Screenplays with Camera & Lighting Directives" },
+    { "id": "image-talkr", "name": "AI Image TalkR", "role": "Virtual Presenter Video Scripts & Lip-sync Keyframes" },
+    { "id": "logo-gen", "name": "AI Logo Generator", "role": "Brand Identity Design & Direct SVG Code Generation" },
+    { "id": "photo-life", "name": "AI Photo Life", "role": "Automotive & Commercial Studio Staging Specs & Midjourney Prompts" },
+    { "id": "video-crew", "name": "AI Video Crew", "role": "Multi-Camera Broadcast Switching Schedules & Directives" },
+    { "id": "visual-workflow", "name": "AI Visual Workflow", "role": "No-Code Workflow Logic connecting AI Triggers to CRM Events" },
+    { "id": "voicex-change", "name": "AI VoiceX Change", "role": "Polyglot Translation & Cultural Localization Engine" },
+    { "id": "big-movies", "name": "AAI BIG Movies Lab", "role": "Long-form Dramatic Treatments & Investor Pitch Decks" },
+    { "id": "train-speak", "name": "Train AI to Speak", "role": "Brand Persona Fine-Tuning & Linguistic Profiling" },
+    { "id": "video-agent", "name": "AI Video Agent", "role": "4-Step Rapid Video Pipeline (Say it, See it, Shape it, Ship it)" }
+  ],
+  "database_models": [
+    "Tenant",
+    "User",
+    "Lead",
+    "Contact",
+    "Deal",
+    "Task",
+    "Note",
+    "Activity",
+    "ErpProject",
+    "SalesOrder",
+    "PurchaseOrder",
+    "InventoryItem",
+    "Invoice",
+    "Communication",
+    "Territory",
+    "HrEmployee",
+    "HrCandidate",
+    "SupportTicket",
+    "KnowledgeArticle",
+    "LedgerAccount",
+    "ProductionOrder",
+    "EboxMessage",
+    "StaffCallSession"
+  ],
+  "qa_training_dataset": [
+    {
+      "prompt": "What software is this, and what is its primary purpose?",
+      "completion": "This software is CRM nErgy AI, an enterprise-grade multi-tenant operating platform created by the Kiaan Tech Group. It unites CRM sales pipeline management, ERP operations and inventory, HR candidate recruiting, multi-channel communications, and 15 autonomous AI studios under a single platform, with the motto 'Make AI Your Bestie'."
+    },
+    {
+      "prompt": "How does multi-tenancy work in CRM nErgy?",
+      "completion": "CRM nErgy enforces strict multi-tenancy using Prisma ORM. Each enterprise organization has a unique tenantId in the Tenant table. Every data record—including Users, Leads, Contacts, Deals, Tasks, Projects, Invoices, and Inventory Items—contains a tenantId foreign key. All REST API endpoints filter queries by where: { tenantId } based on the authenticated JWT token."
+    },
+    {
+      "prompt": "What are the 8 sales pipeline stages in CRM nErgy?",
+      "completion": "The 8 sales pipeline stages are: 1. NEW_LEAD (New Lead, 10% probability), 2. CONTACTED (Contacted, 25%), 3. QUALIFIED (Qualified, 40%), 4. OPPORTUNITY (Opportunity, 60%), 5. PROPOSAL (Proposal, 75%), 6. NEGOTIATION (Negotiation, 90%), 7. WON (Closed Won, 100%), and 8. LOST (Closed Lost, 0%)."
+    },
+    {
+      "prompt": "How do I convert a Lead into a Contact?",
+      "completion": "In the Leads module (/crm/leads), open the qualified lead detail and click 'Convert to Contact'. The backend automatically generates an Address Book Contact record, sets up an associated Deal in the Pipeline, migrates all historical notes and tasks, and saves the converted Contact ID in the lead's convertedToContactId field."
+    },
+    {
+      "prompt": "What is Zunme AI (Bestie AI) and what can it do?",
+      "completion": "Zunme AI (also known as Bestie AI) is the 24/7 autonomous operating partner for CRM nErgy. It can analyze deal risks, capture and stage new leads, monitor warehouse inventory thresholds, screen job applicants, schedule follow-up tasks, and navigate across CRM pages using machine-readable [ACTION:...] tags that execute directly against the database."
+    },
+    {
+      "prompt": "What action tags can Zunme AI output in responses?",
+      "completion": "Zunme AI outputs these structured JSON action tags: 1. [ACTION:DEAL_RISK:{...}] for sales risk intervention, 2. [ACTION:CREATE_LEAD:{...}] to insert a new sales lead, 3. [ACTION:INVENTORY_ALERT:{...}] for low stock reorders, 4. [ACTION:HR_SCREENING:{...}] for candidate ranking, 5. [ACTION:SCHEDULE_TASK:{...}] for follow-up reminders, 6. [ACTION:NAVIGATE:{...}] for page routing, and 7. [ACTION:EXPORT_REPORT:{...}] for executive briefs."
+    },
+    {
+      "prompt": "How does the AI Voice Agent work?",
+      "completion": "The AI Voice Agent (/crm/ai-voice) provides a streaming conversational voice interface using Speech-to-Text (Deepgram Nova-2, OpenAI Whisper, or Web Speech), LLM intelligence (GPT-4o, Claude 3.5, or Gemini 1.5), and Text-to-Speech (ElevenLabs Flash, Cartesia, or SpeechSynthesis). It features real-time waveform equalization, interactive transcripts, and selectable personas like Sarah (Executive), Marcus (Technical), and Elena (Concierge)."
+    },
+    {
+      "prompt": "Where do administrative messages in eBox go?",
+      "completion": "Messages created in Secured eBox (/crm/admin/ebox) are encrypted and transmitted via the Secured Web Message Transfer Protocol (SWMTP) directly to the Kiaan Tech Master Team for priority engineering support, architecture upgrades, or emergency escalations."
+    },
+    {
+      "prompt": "What is the inventory reorder threshold mechanism in ERP?",
+      "completion": "Every SKU in the InventoryItem model has a quantity and a minThreshold. When fulfillment orders reduce the current quantity below minThreshold, the status transitions to 'Low Stock' or 'Critical', prompting the procurement team or Zunme AI to trigger a PurchaseOrder (PO) to replenish stock."
+    },
+    {
+      "prompt": "What are the 15 studios in the AI SuperHouse?",
+      "completion": "The 15 AI SuperHouse studios are: 1. Zunme AI / Bestie (Autonomous Operating Partner), 2. AAI Muzik (Soundtracks), 3. AAI Real Talk (Realistic Dialogue), 4. AI Audio Writer (Voiceover Scripts), 5. AI ConTalk (Sales Objections), 6. AI Film Maker (Cinematic Screenplays), 7. AI Image TalkR (Virtual Presenters), 8. AI Logo Generator (Brand Logos & SVG), 9. AI Photo Life (Commercial Photography), 10. AI Video Crew (Broadcast Switching), 11. AI Visual Workflow (Automation Nodes), 12. AI VoiceX Change (Polyglot Localization), 13. AAI BIG Movies (Dramatic Narrative), 14. Train AI to Speak (Brand Persona Profiling), and 15. AI Video Agent (4-Step Video Production)."
+    },
+    {
+      "prompt": "How are customer support tickets managed and resolved?",
+      "completion": "In /crm/support/tickets, incoming tickets are assigned a ticketNumber, priority (Low, Medium, High, Urgent), category (Technical, Billing, General), and SLA hours (typically 24 hours). Support agents can assign tickets, update status from Open to In Progress, Resolved, or Closed, and link resolutions to public Knowledge Base articles."
+    },
+    {
+      "prompt": "How does staff audio calling work across the platform?",
+      "completion": "Staff calling is powered by the StaffCallSession model and CallContext in the frontend. When a team member initiates a call, signaling events establish a real-time audio session between callerStaffId and recipientStaffId, displaying an ActiveCallOverlay with mute and disconnect controls."
+    },
+    {
+      "prompt": "What is the 4-step framework used by AI Video Agent?",
+      "completion": "The 4-step framework is 'Say it, See it, Shape it, Ship it': Step 1 (Say it) establishes the creative hook and script; Step 2 (See it) generates a 4-shot visual storyboard; Step 3 (Shape it) formats on-screen captions, viral hooks, and hashtags; Step 4 (Ship it) provides production aspect ratios (9:16 vertical / 16:9 widescreen) and distribution checklists."
+    },
+    {
+      "prompt": "What are the allowed routes for the Business Owner persona?",
+      "completion": "The Business Owner persona has complete access to /crm/dashboard, /crm/contacts, /crm/leads, /crm/pipeline, /crm/tasks, /crm/communication, /crm/territory, /crm/erp, /crm/bestie, /crm/ai-voice, /crm/ai-studio, /crm/ai-video, /crm/marketing, /omp/executive/central-office, /crm/hr, /crm/support, /crm/knowledge-base, /crm/my-apps, /crm/search, /crm/analytics, /crm/reports, /crm/admin, and /crm/admin/ebox."
+    },
+    {
+      "prompt": "How does Territory Management track sales performance?",
+      "completion": "In /crm/territory, geographic regions (e.g. West Coast, Midwest, Northeast) are mapped to designated sales managers with assigned annual target quotas. When pipeline deals close, the revenue automatically credits against the territory quota, highlighting underperforming or high-velocity sales regions."
+    }
+  ]
+}
+
